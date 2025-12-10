@@ -1,0 +1,674 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard</title>
+</head>
+
+<body>
+  <div class="sidebar" id="sidebar">
+    <button class="close-sidebar" onclick="toggleSidebar()">←</button>
+    <a href="{% url 'analytics' %}">Analytics</a>
+    <a href="{% url 'pest_activity' %}">Pest Activity</a>
+    <a href="{% url 'sales' %}">sales</a>
+    <a href="{% url 'reports' %}">Reports</a>
+  </div>
+
+  <div class="header">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <div class="header-nav">
+      <a href="{% url 'admin_home' %}">Home</a>
+      <a href="{% url 'appointment' %}">Appointment</a>
+      <a href="{% url 'customers' %}">Customers</a>
+      <a href="{% url 'inventory' %}">Inventory</a>
+    </div>
+    <div class="notification-wrapper">
+      <button onclick="toggleNotificationModal()" class="notification-button">
+        🔔
+        {% if notifications|length > 0 %}
+        <span class="notification-badge">
+          {{ notifications|length }}
+        </span>
+        {% endif %}
+      </button>
+    </div>
+
+    <form action="{% url 'logout' %}" method="post" style="margin: 0;">
+      {% csrf_token %}
+      <button class="logout-btn">Logout</button>
+    </form>
+  </div>
+
+  <!-- Admin Notification Modal -->
+  <div id="notificationModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:1000;">
+    <div style="background:#fff; padding:20px; margin:5% auto; width:90%; max-width:700px; border-radius:8px; position:relative;">
+
+      <h2 style="text-align:center;">Notifications</h2>
+
+      <!-- 🔘 Filter Buttons -->
+      <div style="text-align:center; margin-bottom:15px;">
+        <button class="notif-tab active" onclick="showNotifTab('all')">All</button>
+        <button class="notif-tab" onclick="showNotifTab('tech')">Technician</button>
+        <button class="notif-tab" onclick="showNotifTab('cust')">Customer</button>
+      </div>
+
+      <!-- All Notifications -->
+      <div id="notif-all" class="notif-section">
+        <h3>All Notifications</h3>
+        <hr>
+        <ul style="list-style:none; padding:0; max-height:300px; overflow-y:auto;">
+          {% for note in notifications %}
+            <li onclick="showNotificationDetail({{ note.id }})" style="border-bottom: 1px solid #ccc; padding: 10px 0; cursor: pointer;">
+              <strong>{{ note.technician.username }}</strong>: {{ note.message }}<br>
+              {% if note.appointment %}
+                <span><strong>Client Email:</strong> {{ note.appointment.email }}</span><br>
+                <span><strong>Client Mobile:</strong> {{ note.appointment.mobile }}</span><br>
+              {% endif %}
+              <small>{{ note.timestamp|date:"M d, Y H:i" }}</small>
+            </li>
+          {% endfor %}
+          {% for cnote in customer_notifications %}
+            <li style="border-bottom: 1px solid #ccc; padding: 10px 0;">
+              <strong>{{ cnote.client_name }}</strong> booked an appointment<br>
+              <span><strong>Service:</strong> {{ cnote.appointment.service }}</span><br>
+              <span><strong>Date:</strong> {{ cnote.appointment.date }}</span>  
+              <span><strong>Time:</strong> {{ cnote.appointment.time }}</span><br>
+              <span><strong>Email:</strong> {{ cnote.appointment.email }}</span><br>
+              <span><strong>Mobile:</strong> {{ cnote.appointment.mobile }}</span><br>
+              <small>{{ cnote.timestamp|date:"M d, Y H:i" }}</small>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- Technician Notifications Only -->
+      <div id="notif-tech" class="notif-section" style="display:none;">
+        <h3>Technician Notifications</h3>
+        <hr>
+        <ul style="list-style:none; padding:0; max-height:300px; overflow-y:auto;">
+          {% for note in notifications %}
+            <li onclick="showNotificationDetail({{ note.id }})" style="border-bottom: 1px solid #ccc; padding: 10px 0; cursor: pointer;">
+              <strong>{{ note.technician.username }}</strong>: {{ note.message }}<br>
+              <small>{{ note.timestamp|date:"M d, Y H:i" }}</small>
+            </li>
+          {% empty %}
+            <li>No technician notifications found.</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- Customer Notifications Only -->
+      <div id="notif-cust" class="notif-section" style="display:none;">
+        <h3>Customer Notifications</h3>
+        <hr>
+        <ul style="list-style:none; padding:0; max-height:300px; overflow-y:auto;">
+          {% for cnote in customer_notifications %}
+            <li style="border-bottom: 1px solid #ccc; padding: 10px 0;">
+              <strong>{{ cnote.client_name }}</strong> booked an appointment<br>
+              <span><strong>Service:</strong> {{ cnote.appointment.service }}</span><br>
+              <small>{{ cnote.timestamp|date:"M d, Y H:i" }}</small>
+            </li>
+          {% empty %}
+            <li>No customer notifications.</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <button onclick="closeNotificationModal()" style="margin-top: 20px;">Close</button>
+    </div>
+  </div>
+
+
+  <!-- Single Notification Detail Modal -->
+  <div id="notificationDetailModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:1000;">
+    <div style="background:#fff; padding:20px; margin:10% auto; width:90%; max-width:600px; border-radius:8px; position:relative;">
+      <h3>Notification Details</h3>
+      <div id="notificationDetailContent"></div>
+      <button onclick="closeNotificationDetail()" style="margin-top: 20px;">Close</button>
+    </div>
+  </div>
+
+  <div class="main" id="mainContent">
+    <h1>Inventory</h1>
+
+    <!-- Add Product Form -->
+     <!-- Add Product Form -->
+    <form method="POST" style="margin-bottom: 30px;">
+      {% csrf_token %}
+      <fieldset style="border: 1px solid #ccc; padding: 20px; max-width: 600px;">
+        <legend><strong>Add New Item</strong></legend>
+        <p><label>Name:</label>{{ form.name }}</p>
+        <p><label>Category:</label>{{ form.category }}</p>
+        <p><label>Quantity:</label>{{ form.quantity }}</p>
+        <button type="submit" style="padding: 8px 12px; background-color: #010A28; color: white; border: none; cursor: pointer;">
+          Add Item
+        </button>
+      </fieldset>
+    </form>
+    
+    <!-- Search Bar -->
+    <div class="search-bar-container">
+      <input type="text" id="inventorySearch" placeholder="Search inventory..." class="inventory-search-input">
+      <span class="search-icon">🔍</span>
+    </div>
+
+
+    <!-- Product Table -->
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Category</th>
+          <th>Measurement</th>
+          <th>Quantity</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in products %}
+        <tr>
+          <td>{{ product.name }}</td>
+          <td>{{ product.category }}</td>
+          <td>{{ product.measurement }}</td>
+          <td>{{ product.quantity }}</td>
+          <td>
+            {% if product.status == "Available" %}
+              <span class="status-available">Available</span>
+            {% elif product.status == "Low Stock" %}
+              <span class="status-low">Low Stock</span>
+            {% else %}
+              <span class="status-out">Out of Stock</span>
+            {% endif %}
+          </td>
+          <td>
+            <!-- pass measurement rather than non-existent 'unit' -->
+            <button onclick="openEditModal({{ product.id }}, '{{ product.name|escapejs }}', '{{ product.category|escapejs }}', {{ product.quantity }}, '{{ product.measurement|default:''|escapejs }}')">Edit</button>
+            <button onclick="openDeleteModal({{ product.id }}, '{{ product.name|escapejs }}')">Delete</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Edit Modal -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <button class="close-modal" onclick="closeModal('editModal')">×</button>
+      <form method="post" id="editForm">
+        {% csrf_token %}
+        <h3>Edit Product</h3>
+        <input type="hidden" name="product_id" id="editProductId" />
+        <p><label>Name:</label><input type="text" name="name" id="editName" /></p>
+
+        <!-- Category select so admin can change to Materials/Equipment etc -->
+        <p>
+          <label>Category:</label>
+          <select name="category" id="editCategory">
+            <option value="General Pest Control">General Pest Control</option>
+            <option value="Termite Spot Treatment">Termite Spot Treatment</option>
+            <option value="Termite Comprehensive">Termite Comprehensive</option>
+            <option value="Materials">Materials</option>
+            <option value="Equipment">Equipment</option>
+          </select>
+        </p>
+
+        <p><label>Quantity:</label><input type="number" name="quantity" id="editQuantity" min="0" /></p>
+
+        <!-- hidden measurement (server + JS will set this) -->
+        <input type="hidden" name="measurement" id="editMeasurement">
+
+        <button type="submit">Save Changes</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div id="deleteModal" class="modal">
+    <div class="modal-content">
+      <button class="close-modal" onclick="closeModal('deleteModal')">×</button>
+      <form method="post" id="deleteForm">
+        {% csrf_token %}
+        <h3>Are you sure you want to delete <span id="deleteName"></span>?</h3>
+        <input type="hidden" name="delete_id" id="deleteProductId" />
+        <button type="submit">Yes, Delete</button>
+      </form>
+    </div>
+  </div>
+
+<script>
+function toggleSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  const main = document.getElementById("mainContent");
+  sidebar.classList.toggle("hidden");
+  main.classList.toggle("full");
+}
+
+// openEditModal now receives measurement (may be empty)
+function openEditModal(id, name, category, quantity, measurement) {
+  document.getElementById("editProductId").value = id;
+  document.getElementById("editName").value = name;
+  document.getElementById("editCategory").value = category;
+  document.getElementById("editQuantity").value = quantity;
+  document.getElementById("editMeasurement").value = measurement || "";
+  document.getElementById("editModal").style.display = "block";
+  document.getElementById("editForm").action = `/inventory/edit/${id}/`;
+}
+
+// Delete modal
+function openDeleteModal(id, name) {
+  document.getElementById("deleteProductId").value = id;
+  document.getElementById("deleteName").innerText = name;
+  document.getElementById("deleteModal").style.display = "block";
+  document.getElementById("deleteForm").action = `/inventory/delete/${id}/`;
+}
+
+function closeModal(modalId) {
+  document.getElementById(modalId).style.display = "none";
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const categoryInput = document.querySelector("select[name='category']");
+    const measurementField = document.getElementById("measurement-field");
+
+    function toggleMeasurement() {
+        if (categoryInput.value === "Materials") {
+            measurementField.style.display = "block";
+        } else {
+            measurementField.style.display = "none";
+        }
+    }
+
+    toggleMeasurement(); // initial load
+    categoryInput.addEventListener("change", toggleMeasurement);
+});
+
+
+// When editing, update hidden measurement depending on category before submit
+document.getElementById('editForm').addEventListener('submit', function(e) {
+  const category = document.getElementById('editCategory').value;
+  const measurementInput = document.getElementById('editMeasurement');
+
+  if (category === 'Materials') {
+    measurementInput.value = 'L';
+  } else {
+    measurementInput.value = ''; // send empty -> server will set to None
+  }
+  // form submits normally (server will also enforce)
+});
+
+// Change handler so if admin changes category in modal the hidden measurement updates visually
+document.getElementById('editCategory').addEventListener('change', function() {
+  const measurementInput = document.getElementById('editMeasurement');
+  if (this.value === 'Materials') {
+    measurementInput.value = 'L';
+  } else {
+    measurementInput.value = '';
+  }
+});
+
+
+//--- for admin notification modal
+function toggleNotificationModal() {
+  const modal = document.getElementById('notificationModal');
+  modal.style.display = 'block';
+}
+
+function closeNotificationModal() {
+  document.getElementById('notificationModal').style.display = 'none';
+}
+
+// Optional: Close modal when clicking outside of it
+window.addEventListener('click', function(e) {
+  const modal = document.getElementById('notificationModal');
+  if (e.target === modal) {
+    modal.style.display = 'none';
+  }
+});
+
+//--- for  single notification modal
+function showNotificationDetail(notifId) {
+  fetch(`/get-notification-detail/?id=${notifId}`)
+    .then(response => response.json())
+    .then(data => {
+      const content = `
+        <p><strong>Technician:</strong> ${data.technician}</p>
+        <p><strong>Message:</strong> ${data.message}</p>
+        
+        <hr>
+        ${data.client_name ? `
+          <p><strong>Client:</strong> ${data.client_name}</p>
+          <p><strong>Service:</strong> ${data.service}</p>
+          <p><strong>Date:</strong> ${data.date}</p>
+          <p><strong>Time:</strong> ${data.time}</p>
+          <p><strong>Email:</strong> ${data.email}</p>
+          <p><strong>Mobile:</strong> ${data.mobile}</p>
+        ` : '<p>No appointment linked.</p>'}
+      `;
+      document.getElementById('notificationDetailContent').innerHTML = content;
+      document.getElementById('notificationDetailModal').style.display = 'block';
+    });
+}
+
+function closeNotificationDetail() {
+  document.getElementById('notificationDetailModal').style.display = 'none';
+}
+
+
+// Inventory Table Search Function
+document.getElementById("inventorySearch").addEventListener("keyup", function () {
+  let filter = this.value.toLowerCase();
+  let rows = document.querySelectorAll("table tbody tr");
+
+  rows.forEach(row => {
+    let rowText = row.innerText.toLowerCase();
+    row.style.display = rowText.includes(filter) ? "" : "none";
+  });
+});
+
+// for notification tabs
+function showNotifTab(tab) {
+  // Hide all sections
+  document.querySelectorAll('.notif-section').forEach(s => s.style.display = 'none');
+
+  // Remove active state from all buttons
+  document.querySelectorAll('.notif-tab').forEach(btn => btn.classList.remove('active'));
+
+  // Show selected section
+  if (tab === 'all') {
+    document.getElementById('notif-all').style.display = 'block';
+    document.querySelector(".notif-tab:nth-child(1)").classList.add('active');
+  } 
+  else if (tab === 'tech') {
+    document.getElementById('notif-tech').style.display = 'block';
+    document.querySelector(".notif-tab:nth-child(2)").classList.add('active');
+  } 
+  else if (tab === 'cust') {
+    document.getElementById('notif-cust').style.display = 'block';
+    document.querySelector(".notif-tab:nth-child(3)").classList.add('active');
+  }
+}
+
+</script>
+
+</body>
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+/* Sticky Header */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  background: #010A28;
+  color: white;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.menu-btn, .logout-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.sidebar {
+  width: 250px;
+  background: #010A28;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  padding-top: 60px;
+  transform: translateX(0);
+  transition: transform 0.3s ease;
+}
+
+.sidebar.hidden {
+  transform: translateX(-100%);
+}
+
+.sidebar a {
+  display: block;
+  padding: 15px 20px;
+  color: white;
+  text-decoration: none;
+}
+
+.sidebar a:hover {
+  background: #2c3e50;
+}
+@media (max-width: 768px) {
+  .main {
+    margin-left: 0;
+  }
+  .sidebar {
+    position: fixed;
+    height: 100%;
+    z-index: 998;
+  }
+}
+
+.close-sidebar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.header-nav a {
+  margin-left: 20px;
+  color: white;
+  text-decoration: none;
+}
+
+/* Main content style separated */
+.main {
+  margin-left: 250px;
+  padding: 20px;
+  transition: margin-left 0.3s ease;
+}
+
+.main.full {
+  margin-left: 0;
+}
+
+/* Bubble table design without changing table HTML */
+table {
+  width: 100%;
+  border-collapse: separate !important;
+  border-spacing: 0 15px !important; /* spacing between bubble rows */
+}
+
+/* Header row stays as normal */
+thead tr {
+  background: #010A28;
+}
+
+thead th {
+  color: white;
+  padding: 12px;
+}
+
+/* Bubble rows */
+tbody tr {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Add bubble hover effect */
+tbody tr:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+}
+
+/* Make cell spacing inside bubble */
+/* Add column dividers inside bubble rows */
+tbody td {
+  padding: 18px 12px !important;
+  border: none !important;
+  position: relative;
+}
+
+/* Vertical divider line */
+tbody td:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 10%;
+  right: 0;
+  height: 80%;
+  width: 1px;
+  background: #ddd; /* light gray divider */
+}
+
+
+/* Actions column buttons */
+tbody td button {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #010A28;
+  color: white;
+  transition: 0.2s;
+}
+
+tbody td button:hover {
+  background: #233a6b;
+}
+
+
+.status-available { color: green; }
+.status-low { color: orange; }
+.status-out { color: red; }
+
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 100;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  margin: 10% auto;
+  width: 400px;
+  position: relative;
+}
+
+.close-modal {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 20px;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/*this is for notification css*/
+.notification-wrapper {
+  position: relative;
+}
+
+.notification-button {
+  position: relative;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 18px; /* optional, adjust icon size */
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: red;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+
+/* Notification Tabs */
+.notif-tab {
+  padding: 10px 15px;
+  margin: 5px;
+  border: none;
+  background: #eee;
+  cursor: pointer;
+  border-radius: 8px;
+  font-weight: bold;
+  color: #DDAA1E;
+}
+
+.notif-tab.active {
+  background: #010A28;
+  color: white;
+}
+
+
+/* Search Bar Container */
+.search-bar-container {
+  position: relative;
+  max-width: 400px;
+  margin-top: 20px;
+}
+
+/* Input Field */
+.inventory-search-input {
+  width: 100%;
+  padding: 10px 40px 10px 15px; /* space for icon */
+  border: 1px solid #ccc;
+  border-radius: 25px;
+  font-size: 16px;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+/* Focus effect */
+.inventory-search-input:focus {
+  border-color: #010A28;
+  box-shadow: 0 0 10px rgba(1, 10, 40, 0.3);
+}
+
+/* Search icon inside input */
+.search-bar-container .search-icon {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: #010A28;
+  pointer-events: none;
+}
+
+</style>
+</html>
+

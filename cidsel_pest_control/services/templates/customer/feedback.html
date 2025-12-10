@@ -1,0 +1,860 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Feedback</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <div class="header">
+        <div class="header-container">
+            <div class="logo-text">
+                <img id="logo" src="{% static 'cidsel_logo.png' %}" alt="CIDSEL Logo">
+                <div class="text-group">
+                    <h1>
+                        <span class="brand">CIDSEL</span>
+                        <span class="service">Pest Control Services</span>
+                    </h1>
+                    <p class="subtitle">Professional pest control for residential and commercial properties</p>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                <a href="{% url 'book_appointment' %}" class="appointment-button">Book Appointment</a>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-button">Logout</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="nav-bar">
+            <a href="{% url 'dashboard' %}">Home</a>
+            <a href="{% url 'services' %}">Services</a>
+            <a href="{% url 'faqs' %}">FAQs</a>
+
+            {% if user.is_authenticated %}
+                <a href="{% url 'feedback' %}">Feedback</a>
+            {% else %}
+                <div class="tooltip-wrapper">
+                    <a href="{% url 'login' %}" class="tooltip-link">Feedback</a>
+                    <span class="tooltip-text">Need to Sign In</span>
+                </div>
+            {% endif %}
+
+            {% if user.is_authenticated %}
+                <a href="{% url 'profile' %}">Profile</a>
+            {% else %}
+                <div class="tooltip-wrapper">
+                    <a href="{% url 'login' %}" class="tooltip-link">Profile</a>
+                    <span class="tooltip-text">Need to Sign In</span>
+                </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+<div class="content">
+
+    <h1>Customer Feedback</h1>
+    <p>We value your feedback! Let us know about your experience with our services.</p>
+    <!-- Feedback Modal Trigger -->
+    <button onclick="openModal()" class="appointment-button">Give Feedback</button>
+
+    <!-- Feedback Modal -->
+    <div id="feedbackModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Submit Feedback</h2>
+            <form method="POST" action="{% url 'submit_feedback' %}">
+                {% csrf_token %}
+                
+                <label for="category">Service Category:</label>
+                <select id="category" name="category" required>
+                    <option value="">--Select Category--</option>
+                    <option value="General Pest Control">General Pest Control</option>
+                    <option value="Termite Spot Treatment">Termite Spot Treatment</option>
+                    <option value="Termite Comprehensive">Termite Comprehensive</option>
+                </select>
+                
+                <br><br>
+                
+                <label>Your Rating:</label><br>
+                <div class="star-rating">
+                    <input type="radio" id="star5" name="rating" value="5" required><label for="star5" title="5 stars">&#9733;</label>
+                    <input type="radio" id="star4" name="rating" value="4"><label for="star4" title="4 stars">&#9733;</label>
+                    <input type="radio" id="star3" name="rating" value="3"><label for="star3" title="3 stars">&#9733;</label>
+                    <input type="radio" id="star2" name="rating" value="2"><label for="star2" title="2 stars">&#9733;</label>
+                    <input type="radio" id="star1" name="rating" value="1"><label for="star1" title="1 star">&#9733;</label>
+                </div>
+                
+                <br>
+                
+                <label for="feedback">Your Feedback:</label><br>
+                <textarea id="feedback" name="feedback" rows="5" cols="50" required></textarea><br><br>
+                
+                <button type="submit" class="appointment-button">Submit</button>
+            </form>
+
+        </div>
+    </div>  
+</div>
+
+<hr class="section-divider">
+<h2 class="feedback-title">Customer Reviews</h2>
+<div class="feedback-list">
+    {% for fb in feedbacks %}
+        <div class="feedback-card">
+            <div class="feedback-header">
+                <strong class="feedback-user">{{ fb.user.username }}</strong>
+                <span class="feedback-stars">
+                    {% for i in "12345"|make_list %}
+                        {% if forloop.counter <= fb.rating %}
+                            ★
+                        {% else %}
+                            ☆
+                        {% endif %}
+                    {% endfor %}
+                </span>
+            </div>
+            <small class="feedback-date">{{ fb.submitted_at|date:"M d, Y - H:i" }}</small>
+            <p class="feedback-category"><strong>Category:</strong> {{ fb.category }}</p>
+            <p class="feedback-message">{{ fb.message }}</p>
+        </div>
+    {% empty %}
+        <p class="no-feedback">No feedback yet. Be the first to leave one!</p>
+    {% endfor %}
+</div>
+
+{% if user.is_authenticated %}
+<div class="chat-btn-wrapper">
+  <span id="chatNotification" class="chat-notification">!</span>
+  <button id="chatBtn" class="chat-button" onclick="openChat()">💬 Message Admin</button>
+</div>
+{% else %}
+<div class="chat-btn-wrapper">
+  <button id="chatBtn" class="chat-button disabled" title="Login to chat" disabled>💬 Login to Chat</button>
+</div>
+{% endif %}
+
+<!-- Chat Modal -->
+<div id="chatModal" class="chat-modal">
+  <div class="chat-modal-content">
+    <span class="close-chat" onclick="closeChat()">&times;</span>
+    <h2>Chat with Admin</h2>
+    <div id="chatMessages" class="chat-messages"></div>
+    <form id="chatForm">
+      <input type="text" id="chatInput" placeholder="Type your message..." required>
+      <button type="submit">Send</button>
+    </form>
+  </div>
+</div> 
+
+<button id="backToTop" title="Go to top">🢁</button>
+
+</body>
+
+<footer class="site-footer">
+  <div class="footer-container">
+    <!-- Quick Contact -->
+    <div class="footer-section">
+      <h2>Quick Contact</h2>
+      <p>Email: <a href="mailto:cidselpestcontrol@gmail.com">cidselpestcontrol@gmail.com</a></p>
+      <p><strong>Phone</strong></p>
+      <ul>
+        <li>0948-285-7626</li>
+        <li>0939-135-7361</li>
+        <li>0998-576-4850</li>
+      </ul>
+    </div>
+
+    <!-- Location -->
+    <div class="footer-section">
+      <h2>Our Location</h2>
+      <p>
+        Purok 7, Sampaloc Santo Cristo, <br>
+        Sariaya, Philippines, 4322
+      </p>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <p>&copy; {{ now|date:"Y" }} CIDSEL Pest Control Services. All Rights Reserved.</p>
+  </div>
+</footer>
+
+<script>
+    function openModal() {
+        document.getElementById("feedbackModal").style.display = "block";
+    }
+
+    function closeModal() {
+        document.getElementById("feedbackModal").style.display = "none";
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById("feedbackModal");
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+
+    // to fix nav bar on top when scrolling
+    window.addEventListener("scroll", function() {
+        const nav = document.querySelector(".nav-bar");
+        const header = document.querySelector(".header");
+
+        if (window.scrollY >= header.offsetHeight) {
+            nav.classList.add("fixed-nav");
+        } else {
+            nav.classList.remove("fixed-nav");
+        }
+    });
+
+    // Back to Top button functionality
+const backToTop = document.getElementById("backToTop");
+
+window.onscroll = function () {
+  if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
+    backToTop.style.display = "block";
+  } else {
+    backToTop.style.display = "none";
+  }
+};
+
+backToTop.onclick = function () {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+// Chat system
+function openChat() {
+  document.getElementById("chatModal").style.display = "block";
+  loadMessages();
+}
+
+function closeChat() {
+  document.getElementById("chatModal").style.display = "none";
+}
+
+async function loadMessages() {
+  const res = await fetch("{% url 'load_messages' %}");
+  const data = await res.json();
+  const container = document.getElementById("chatMessages");
+  container.innerHTML = "";
+  data.messages.forEach(m => {
+    const msgDiv = document.createElement("div");
+    msgDiv.className = m.is_admin ? "admin-msg" : "user-msg";
+    msgDiv.textContent = `${m.sender}: ${m.message}`;
+    container.appendChild(msgDiv);
+  });
+  container.scrollTop = container.scrollHeight;
+}
+
+// Refresh messages every 5s
+setInterval(loadMessages, 5000);
+
+document.getElementById("chatForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById("chatInput").value;
+  await fetch("{% url 'send_message' %}", {
+    method: "POST",
+    headers: { "X-CSRFToken": "{{ csrf_token }}" },
+    body: new URLSearchParams({ message: msg })
+  });
+  document.getElementById("chatInput").value = "";
+  loadMessages();
+});
+
+// Close modal when clicking outside
+window.addEventListener("click", function (event) {
+  const modal = document.getElementById("chatModal");
+  if (event.target === modal) {
+    closeChat();
+  }
+});
+
+
+//chat notif
+let lastMessageCount = 0;
+const chatBadge = document.getElementById("chatNotification");
+
+async function checkNewMessages() {
+  const res = await fetch("{% url 'load_messages' %}");
+  const data = await res.json();
+  const messages = data.messages;
+
+  // Count admin messages
+  const adminMessages = messages.filter(m => m.is_admin);
+
+  // If new admin message arrived, show "!"
+  if (adminMessages.length > lastMessageCount && document.getElementById("chatModal").style.display !== "block") {
+    chatBadge.style.display = "block";
+  }
+
+  lastMessageCount = adminMessages.length;
+}
+
+setInterval(checkNewMessages, 5000);
+
+// Hide badge when chat is opened
+function openChat() {
+  document.getElementById("chatModal").style.display = "block";
+  chatBadge.style.display = "none";
+  loadMessages();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const chatModal = document.getElementById("chatModal");
+  const chatBadge = document.getElementById("chatNotification");
+  let lastMessageCount = 0;
+
+  async function checkNewMessages() {
+    try {
+      const res = await fetch("{% url 'load_messages' %}");
+      const data = await res.json();
+      const adminMessages = data.messages.filter(m => m.is_admin);
+
+      // Show badge only if modal is closed and new message appears
+      if (adminMessages.length > lastMessageCount && chatModal.style.display !== "block") {
+        chatBadge.style.display = "block";
+      }
+      lastMessageCount = adminMessages.length;
+    } catch (err) {
+      console.error("Message check failed:", err);
+    }
+  }
+
+  setInterval(checkNewMessages, 2000);
+
+  // Wrap the existing openChat to hide badge when chat opens
+  window.openChat = function() {
+    chatModal.style.display = "block";
+    chatBadge.style.display = "none";
+    loadMessages();
+  };
+
+  window.closeChat = function() {
+    chatModal.style.display = "none";
+  };
+
+  // Close modal on outside click
+  window.addEventListener("click", (event) => {
+    if (event.target === chatModal) {
+      closeChat();
+    }
+  });
+});
+
+</script>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f5f5f5;
+    }
+
+    img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    .header {
+        background-color: #010A28;
+        color: white;
+        padding: 10px 0;
+        position: relative;
+        top: 0;
+        width: 100%;
+        z-index: 1000;
+    }
+
+    .header-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 20px;
+    }
+
+    .logo-text {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    #logo {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+    }
+
+    .text-group {
+        text-align: left;
+    }
+
+    .brand {
+        color: white;
+        font-weight: bold;
+        font-size: 22px;
+    }
+
+    .service {
+        color: #DDAA1E;
+        font-weight: bold;
+        font-size: 22px;
+    }
+
+    .subtitle {
+        color: #ccc;
+        margin-top: 4px;
+        font-size: 14px;
+    }
+
+    .logout-button,
+    .appointment-button {
+        background-color: #DDAA1E;
+        color: #010A28;
+        font-weight: bold;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin: 5px;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .logout-button:hover,
+    .appointment-button:hover {
+        background-color: #c2941a;
+    }
+
+    .nav-bar {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        padding: 10px;
+        flex-wrap: wrap;
+    }
+
+    .fixed-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background: #010A28;
+        z-index: 999;
+    }
+
+    .nav-bar a {
+        text-decoration: none;
+        color: #f5f5f5;
+        font-weight: bold;
+        padding: 5px 22px;
+        border-radius: 5px;
+        transition: background 0.2s;
+    }
+
+    .nav-bar a.active,
+    .nav-bar a:hover {
+        background-color: #DDAA1E;
+        color: #fff;
+    }
+    
+    .tooltip-wrapper {
+        position: relative;
+        display: inline-block;
+    }
+
+    .tooltip-text {
+        visibility: hidden;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        border-radius: 4px;
+        padding: 5px 8px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%; /* position above the link */
+        left: 50%;
+        transform: translateX(-50%);
+        opacity: 0;
+        transition: opacity 1s;
+        white-space: nowrap;
+    }
+
+    .tooltip-wrapper:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .tooltip-link {
+        text-decoration: none;
+        color: #f5f5f5;
+        font-weight: bold;
+        padding: 5px 10px;
+        border-radius: 5px;
+        transition: background 0.2s;
+    }
+
+    .tooltip-link:hover {
+        background-color: #DDAA1E;
+        color: #fff;
+    }
+ 
+
+    /* Mobile Styles */
+    @media (max-width: 768px) {
+        .header-container {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .logo-text {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            width: 100%;
+        }
+
+        .text-group {
+            text-align: center;
+        }
+
+        .brand, .service {
+            font-size: 20px;
+        }
+
+        .subtitle {
+            font-size: 12px;
+        }
+
+        .logout-button,
+        .appointment-button {
+            width: 100%;
+            text-align: center;
+        }
+
+        .nav-bar {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .nav-bar a {
+            width: 100%;
+            max-width: 200px;
+            text-align: center;
+        }
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.4);
+    }
+
+    .modal-content {
+        background-color: #fff;
+        margin: 10% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 90%;
+        max-width: 500px;
+        border-radius: 10px;
+        position: relative;
+    }
+
+    .close {
+        color: #aaa;
+        position: absolute;
+        right: 20px;
+        top: 10px;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .close:hover {
+        color: black;
+    }
+
+    .star-rating {
+        direction: rtl;
+        display: inline-flex;
+        justify-content: flex-start;
+    }
+
+    .star-rating input[type="radio"] {
+        display: none;
+    }
+
+    .star-rating label {
+        font-size: 30px;
+        color: #ccc;
+        cursor: pointer;
+        padding: 0 2px;
+    }
+
+    .star-rating input:checked ~ label {
+        color: #DDAA1E;
+    }
+
+    .star-rating label:hover,
+    .star-rating label:hover ~ label {
+        color: #DDAA1E;
+    }
+
+    /* for posting the feedback */
+    .section-divider {
+        margin-top: 40px;
+        margin-bottom: 20px;
+        border: none;
+        border-top: 2px solid #DDAA1E;
+    }
+
+    .feedback-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #010A28;
+        margin-bottom: 20px;
+    }
+
+    .feedback-list {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .feedback-card {
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-left: 5px solid #DDAA1E;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .feedback-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+    }
+
+    .feedback-user {
+        font-weight: bold;
+        color: #010A28;
+    }
+
+    .feedback-stars {
+        color: #DDAA1E;
+        font-size: 20px;
+    }
+
+    .feedback-date {
+        color: #777;
+        font-size: 13px;
+    }
+
+    .feedback-category {
+        font-size: 15px;
+        margin-top: 10px;
+        color: #333;
+    }
+
+    .feedback-message {
+        font-size: 16px;
+        color: #444;
+        margin-top: 8px;
+    }
+
+    .no-feedback {
+        color: #999;
+        font-style: italic;
+    }
+
+/*FOOTER*/
+.site-footer {
+    background-color: #010A28;
+    color: white;
+    padding: 40px 20px 20px;
+    margin-top: 50px;
+}
+
+.footer-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.footer-section {
+    flex: 1;
+    min-width: 250px;
+}
+
+.footer-section h2 {
+    color: #DDAA1E;
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+.footer-section p,
+.footer-section ul {
+    margin: 5px 0;
+    font-size: 15px;
+}
+
+.footer-section ul {
+    list-style: none;
+    padding: 0;
+}
+
+.footer-section ul li {
+    margin: 3px 0;
+}
+
+.footer-section a {
+    color: #DDAA1E;
+    text-decoration: none;
+}
+
+.footer-section a:hover {
+    text-decoration: underline;
+}
+
+.footer-bottom {
+    text-align: center;
+    border-top: 1px solid #444;
+    margin-top: 30px;
+    padding-top: 15px;
+    font-size: 14px;
+    color: #bbb;
+}
+
+/* Back to Top Button */
+#backToTop {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 5000; /* above all content */
+  background-color: #010A28;
+  color: white;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  opacity: 0.5; /* 50% transparent */
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#backToTop:hover {
+  opacity: 0.9;
+  transform: scale(1.1);
+}
+
+/* for chat system*/
+.chat-button {
+  position: fixed;
+  bottom: 75px;
+  right: 20px;
+  background: #DDAA1E;
+  color: #010A28;
+  padding: 16px 20px;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  font-weight: bold;
+  opacity: 80%;
+}
+.chat-button.disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 80%;
+}
+
+.chat-modal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+}
+.chat-modal-content {
+  background: #fff;
+  margin: 10% auto;
+  padding: 20px;
+  max-width: 400px;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+}
+.chat-messages {
+  height: 300px;
+  overflow-y: auto;
+  background: #f9f9f9;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+.user-msg {
+  text-align: right;
+  background: #DDAA1E;
+  color: white;
+  margin: 5px;
+  padding: 8px 12px;
+  border-radius: 10px 10px 0 10px;
+}
+.admin-msg {
+  text-align: left;
+  background: #eee;
+  margin: 5px;
+  padding: 8px 12px;
+  border-radius: 10px 10px 10px 0;
+}
+
+.chat-btn-wrapper {
+  position: fixed;
+  bottom: 145px;
+  right: 20px;
+}
+
+.chat-notification {
+  position: absolute;
+  top: 5px;
+  right: 10px;
+  background: red;
+  color: white;
+  font-weight: bold;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+  text-align: center;
+  line-height: 18px;
+  display: none; /* hidden by default */
+  box-shadow: 0 0 5px rgba(0,0,0,0.3);
+}
+
+</style>
+
+</html>

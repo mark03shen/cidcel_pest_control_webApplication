@@ -1,0 +1,133 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create Your Account</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: white;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        h2 {
+            font-size: 24px;
+            color: #010A28;
+            margin-bottom: 10px;
+        }
+
+        p a {
+            color: #0047FF;
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        button {
+            margin-top: 20px;
+            width: 100%;
+            padding: 12px;
+            background-color: #010A28;
+            color: white;
+            font-weight: bold;
+            font-size: 15px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        .popup {
+            position: fixed;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            color: black;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+
+<div class="container">
+    <h2>Create Your Account</h2>
+    <p>Already have an account? <a href="{% url 'login' %}">Login here</a></p>
+    <p><a href="{% url 'landing_page' %}">Go Back</a></p>
+    {% if form.errors %}
+        <div style="color: red; margin-top: 10px;">
+            <ul>
+            {% for field in form %}
+                {% for error in field.errors %}
+                    <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    
+    <label for="{{ form.username.id_for_label }}">Username:</label>
+    {{ form.username }}
+    
+    <label for="{{ form.email.id_for_label }}">Email address:</label>
+    {{ form.email }}
+
+    <label for="{{ form.password1.id_for_label }}">Password:</label>
+    {{ form.password1 }}
+
+    <label for="{{ form.password2.id_for_label }}">Password confirmation:</label>
+    {{ form.password2 }}
+
+    <button type="submit">Submit</button>
+</form>
+
+{% if request.GET.success %}
+<div class="popup" id="popup">
+    <h3>Registration successful!</h3>
+    <p>Please check your email to verify your account.</p>
+</div>
+<script>
+    document.getElementById('popup').style.display = 'block';
+    setTimeout(function () {
+        document.getElementById('popup').style.display = 'none';
+    }, 2000);
+</script>
+{% endif %}
+
+</div>
+</body>
+</html>

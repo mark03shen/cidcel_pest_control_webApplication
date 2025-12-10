@@ -1,0 +1,753 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Repots</title>
+  
+</head>
+<body>
+  <div class="sidebar" id="sidebar">
+    <button class="close-sidebar" onclick="toggleSidebar()">←</button>
+    <a href="{% url 'analytics' %}">Analytics</a>
+    <a href="{% url 'pest_activity' %}">Pest Activity</a>
+    <a href="{% url 'sales' %}">sales</a>
+    <a href="{% url 'reports' %}">Reports</a>
+  </div>
+
+  <div class="header">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <div class="header-nav">
+      <a href="{% url 'admin_home' %}">Home</a>
+      <a href="{% url 'appointment' %}">Appointment</a>
+      <a href="{% url 'customers' %}">Customers</a>
+      <a href="{% url 'inventory' %}">Inventory</a>
+    </div>
+    <div class="notification-wrapper">
+      <button onclick="toggleNotificationModal()" class="notification-button">
+        🔔
+        {% if notifications|length > 0 %}
+        <span class="notification-badge">
+          {{ notifications|length }}
+        </span>
+        {% endif %}
+      </button>
+    </div>
+
+    <form action="{% url 'logout' %}" method="post" style="margin: 0;">
+      {% csrf_token %}
+      <button class="logout-btn">Logout</button>
+    </form>
+  </div>
+
+  <!-- Admin Notification Modal -->
+  <div id="notificationModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:1000;">
+    <div style="background:#fff; padding:20px; margin:5% auto; width:90%; max-width:700px; border-radius:8px; position:relative;">
+
+      <h2 style="text-align:center;">Notifications</h2>
+
+      <!-- 🔘 Filter Buttons -->
+      <div style="text-align:center; margin-bottom:15px;">
+        <button class="notif-tab active" onclick="showNotifTab('all')">All</button>
+        <button class="notif-tab" onclick="showNotifTab('tech')">Technician</button>
+        <button class="notif-tab" onclick="showNotifTab('cust')">Customer</button>
+      </div>
+
+      <!-- All Notifications -->
+      <div id="notif-all" class="notif-section">
+        <h3>All Notifications</h3>
+        <hr>
+        <ul style="list-style:none; padding:0; max-height:300px; overflow-y:auto;">
+          {% for note in notifications %}
+            <li onclick="showNotificationDetail({{ note.id }})" style="border-bottom: 1px solid #ccc; padding: 10px 0; cursor: pointer;">
+              <strong>{{ note.technician.username }}</strong>: {{ note.message }}<br>
+              {% if note.appointment %}
+                <span><strong>Client Email:</strong> {{ note.appointment.email }}</span><br>
+                <span><strong>Client Mobile:</strong> {{ note.appointment.mobile }}</span><br>
+              {% endif %}
+              <small>{{ note.timestamp|date:"M d, Y H:i" }}</small>
+            </li>
+          {% endfor %}
+          {% for cnote in customer_notifications %}
+            <li style="border-bottom: 1px solid #ccc; padding: 10px 0;">
+              <strong>{{ cnote.client_name }}</strong> booked an appointment<br>
+              <span><strong>Service:</strong> {{ cnote.appointment.service }}</span><br>
+              <span><strong>Date:</strong> {{ cnote.appointment.date }}</span>  
+              <span><strong>Time:</strong> {{ cnote.appointment.time }}</span><br>
+              <span><strong>Email:</strong> {{ cnote.appointment.email }}</span><br>
+              <span><strong>Mobile:</strong> {{ cnote.appointment.mobile }}</span><br>
+              <small>{{ cnote.timestamp|date:"M d, Y H:i" }}</small>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- Technician Notifications Only -->
+      <div id="notif-tech" class="notif-section" style="display:none;">
+        <h3>Technician Notifications</h3>
+        <hr>
+        <ul style="list-style:none; padding:0; max-height:300px; overflow-y:auto;">
+          {% for note in notifications %}
+            <li onclick="showNotificationDetail({{ note.id }})" style="border-bottom: 1px solid #ccc; padding: 10px 0; cursor: pointer;">
+              <strong>{{ note.technician.username }}</strong>: {{ note.message }}<br>
+              <small>{{ note.timestamp|date:"M d, Y H:i" }}</small>
+            </li>
+          {% empty %}
+            <li>No technician notifications found.</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- Customer Notifications Only -->
+      <div id="notif-cust" class="notif-section" style="display:none;">
+        <h3>Customer Notifications</h3>
+        <hr>
+        <ul style="list-style:none; padding:0; max-height:300px; overflow-y:auto;">
+          {% for cnote in customer_notifications %}
+            <li style="border-bottom: 1px solid #ccc; padding: 10px 0;">
+              <strong>{{ cnote.client_name }}</strong> booked an appointment<br>
+              <span><strong>Service:</strong> {{ cnote.appointment.service }}</span><br>
+              <small>{{ cnote.timestamp|date:"M d, Y H:i" }}</small>
+            </li>
+          {% empty %}
+            <li>No customer notifications.</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <button onclick="closeNotificationModal()" style="margin-top: 20px;">Close</button>
+    </div>
+  </div>
+
+
+  <!-- Single Notification Detail Modal -->
+  <div id="notificationDetailModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:1000;">
+    <div style="background:#fff; padding:20px; margin:10% auto; width:90%; max-width:600px; border-radius:8px; position:relative;">
+      <h3>Notification Details</h3>
+      <div id="notificationDetailContent"></div>
+      <button onclick="closeNotificationDetail()" style="margin-top: 20px;">Close</button>
+    </div>
+  </div>
+
+<div class="main" id="mainContent">
+  <div class="card">
+    <h1>Generate Reports</h1>
+    <p>Generate and view business reports</p>
+  </div>
+
+  <div>
+    <div class="card1">
+      <img id="logo" src="{% static 'printer.png' %}" alt="CIDSEL Logo">
+      <h2>Sales Reports</h2>
+      <p>Financial performance</p>
+      <button onclick="openModal('salesReportModal')"><strong>Print</strong></button>
+
+    </div>
+
+    <div class="card1">
+      <img id="logo" src="{% static 'printer.png' %}" alt="CIDSEL Logo">
+      <h2>Service Report</h2>
+      <p>Service efficiency and completion rates</p>
+      <button onclick="openModal('serviceReportModal')"><strong>Print</strong></button>
+
+    </div>  
+  </div>
+
+  <!-- Sales Report Modal -->
+  <div id="salesReportModal" class="custom-modal">
+    <div class="custom-modal-content">
+      <span class="close-btn" onclick="closeModal('salesReportModal')">&times;</span>
+      <h2>Sales Report</h2>
+      <p>Print sales report</p>
+      <button onclick="printSalesReport()"
+        style="padding:8px 16px; 
+        background-color:green;
+        color:white; 
+        border:none; 
+        border-radius:5px; 
+        cursor:pointer; 
+        margin-bottom: 10px;">
+        🖨️ Print Sales Report
+      </button>
+    </div>
+  </div>
+
+  <!-- Service Report Modal -->
+  <div id="serviceReportModal" class="custom-modal">
+    <div class="custom-modal-content">
+      <span class="close-btn" onclick="closeModal('serviceReportModal')">&times;</span>
+      <h2>Service Report</h2>
+      <p>Select an appointment to view/print the report:</p>
+
+      <!-- 🔍 Search Bar -->
+      <input 
+        type="text" 
+        id="searchAppointments" 
+        placeholder="🔍︎ Search by client, service, or date..." 
+        onkeyup="filterAppointments()" 
+        style="width:100%; padding:8px; margin-bottom:10px; border:1px solid #ccc; border-radius:5px;"
+      >
+
+      <!-- Appointment List -->
+      <div id="appointmentList">
+        {% for cust in customers %}
+        <div class="appointment-wrapper" style="margin-bottom:5px;">
+          <button 
+            class="appointment-item"
+            data-client="{{ cust.client_name|lower }}"
+            data-service="{{ cust.service|lower }}"
+            data-date="{{ cust.date|date:'M d, Y'|lower }}"
+            onclick="toggleAppointmentDetails({{ cust.id }})"
+            style="display:block; width:100%; text-align:left; padding:8px; 
+                  border:1px solid #ccc; border-radius:5px; background:#f9f9f9; cursor:pointer;">
+            📄 {{ cust.client_name }} - {{ cust.service }} ({{ cust.date|date:"M d, Y" }})
+          </button>
+
+          <!-- Hidden dropdown content -->
+          <div id="appointmentDetails-{{ cust.id }}" class="appointment-details" style="display:none; padding:10px; border:1px solid #ddd; border-top:none; border-radius:0 0 5px 5px; background:#f5f5f5;">
+            <p><strong>Client Name:</strong> {{ cust.client_name }}</p>
+            <p><strong>Service:</strong> {{ cust.service }}</p>
+            <p><strong>Land Use Category:</strong> {{ cust.land_use_category }}</p>
+            <p><strong>Contract Period:</strong> {{ cust.contract_period }}</p>
+            <p><strong>Price:</strong> ₱{{ cust.estimated_price }}</p>
+            <p><strong>Total Area:</strong> {{ cust.total_area }} sqm</p>
+            <p><strong>Date:</strong> {{ cust.date|date:"M d, Y" }}</p>
+            <p><strong>Time:</strong> {{ cust.time|time:"H:i" }}</p>
+            <p><strong>Job Location:</strong> {{ cust.job_location }}</p>
+            <p><strong>Payment Method:</strong> {{ cust.payment_method }}</p>
+            <p><strong>Client Address:</strong> {{ cust.client_address }}</p>
+            <p><strong>Municipality:</strong> {{ cust.municipality }}</p>
+            <p><strong>Barangay:</strong> {{ cust.barangay }}</p>
+            <p><strong>Street:</strong> {{ cust.street }}</p>
+            <p><strong>House No.:</strong> {{ cust.house_number }}</p>
+            <p><strong>Email:</strong> {{ cust.email }}</p>
+            <p><strong>Mobile:</strong> {{ cust.mobile }}</p>
+            <p><strong>Status:</strong> {{ cust.status }}</p>
+
+            <!-- Print and Cancel Buttons -->
+            <div style="margin-top:10px;">
+              <button onclick="printSingleAppointment({{ cust.id }})" 
+                style="padding:6px 12px; background-color:green; color:white; border:none; border-radius:5px; cursor:pointer;">
+                🖨️ Print
+              </button>
+              <button onclick="cancelSingleAppointment({{ cust.id }})" 
+                style="padding:6px 12px; background-color:red; color:white; border:none; border-radius:5px; cursor:pointer; margin-left:5px;">
+                ❌ Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <p>No appointments found.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+
+</div>
+
+<!-- Hidden JSON Data -->
+<script id="appointments-data" type="application/json">
+  [
+    {% for cust in customers %}
+    {
+      "id": {{ cust.id }},
+      "client_name": "{{ cust.client_name|escapejs }}",
+      "service": "{{ cust.service|escapejs }}",
+      "land_use_category": "{{ cust.land_use_category|escapejs }}",
+      "contract_period": "{{ cust.contract_period|escapejs }}",
+      "estimated_price": "{{ cust.estimated_price }}",
+      "total_area": "{{ cust.total_area }}",
+      "date": "{{ cust.date|date:'M d, Y' }}",
+      "time": "{{ cust.time|time:'H:i' }}",
+      "job_location": "{{ cust.job_location|escapejs }}",
+      "payment_method": "{{ cust.payment_method|escapejs }}",
+      "client_address": "{{ cust.client_address|escapejs }}",
+      "municipality": "{{ cust.municipality|escapejs }}",
+      "barangay": "{{ cust.barangay|escapejs }}",
+      "street": "{{ cust.street|escapejs }}",
+      "house_number": "{{ cust.house_number|escapejs }}",
+      "email": "{{ cust.email|escapejs }}",
+      "mobile": "{{ cust.mobile|escapejs }}",
+      "status": "{{ cust.status|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]
+</script>
+
+<script>
+function toggleSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    const main = document.getElementById("mainContent");
+    sidebar.classList.toggle("hidden");
+    main.classList.toggle("full");
+}
+
+//------ for button Modal
+// Open modal
+function openModal(id) {
+  document.getElementById(id).style.display = "block";
+}
+
+// Close modal
+function closeModal(id) {
+  document.getElementById(id).style.display = "none";
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+  const modals = document.querySelectorAll(".custom-modal");
+  modals.forEach(modal => {
+    if (event.target === modal) {
+      modal.style.display = "none";
+    }
+  });
+}
+
+// for printing reports
+function printSalesReport() {
+    // Build table HTML
+    let table = `
+        <h2>Sales Report</h2>
+        <table border="1" cellspacing="0" cellpadding="8">
+            <thead>
+                <tr>
+                    <th>Service</th>
+                    <th>Total Jobs</th>
+                    <th>Revenue (₱)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in sales_data %}
+                <tr>
+                    <td>{{ item.service }}</td>
+                    <td>{{ item.total_jobs }}</td>
+                    <td>₱{{ item.total_revenue|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+                <tr style="font-weight:bold;">
+                    <td>Total</td>
+                    <td>{{ total_jobs }}</td>
+                    <td>₱{{ total_revenue|floatformat:2 }}</td>
+                </tr>
+            </tbody>
+        </table>
+    `;
+
+    // Open a new window for printing
+    let printWindow = window.open('', '', 'height=600,width=800');
+    printWindow.document.write('<html><head><title>Sales Report</title>');
+    printWindow.document.write('<style>table{width:100%;border-collapse:collapse;}th, td{border:1px solid #000;padding:8px;text-align:center;}th{background:#eee;}</style>');
+    printWindow.document.write('</head><body>');
+    printWindow.document.write(table);
+    printWindow.document.write('</body></html>');
+
+    printWindow.document.close();
+    printWindow.print();
+}
+
+// for printing service report
+let appointments = JSON.parse(document.getElementById("appointments-data").textContent);
+
+// Toggle dropdown for appointment details
+function toggleAppointmentDetails(id) {
+    const detailsDiv = document.getElementById(`appointmentDetails-${id}`);
+    const currentlyVisible = detailsDiv.style.display === 'block';
+
+    // Close all other dropdowns
+    document.querySelectorAll('.appointment-details').forEach(div => div.style.display = 'none');
+
+    // Toggle current one
+    detailsDiv.style.display = currentlyVisible ? 'none' : 'block';
+}
+
+// Print single appointment
+function printSingleAppointment(id) {
+    const cust = appointments.find(c => c.id === id);
+    if (!cust) return;
+
+    let content = `
+        <h2 style="text-align:center;">Service Report</h2>
+        <div style="padding:10px; font-family:Arial, sans-serif; line-height:1.5;">
+            <p><strong>Client Name:</strong> ${cust.client_name}</p>
+            <p><strong>Service:</strong> ${cust.service}</p>
+            <p><strong>Land Use Category:</strong> ${cust.land_use_category}</p>
+            <p><strong>Contract Period:</strong> ${cust.contract_period}</p>
+            <p><strong>Price:</strong> ₱${cust.estimated_price}</p>
+            <p><strong>Total Area:</strong> ${cust.total_area} sqm</p>
+            <p><strong>Date:</strong> ${cust.date}</p>
+            <p><strong>Time:</strong> ${cust.time}</p>
+            <p><strong>Job Location:</strong> ${cust.job_location}</p>
+            <p><strong>Payment Method:</strong> ${cust.payment_method}</p>
+            <p><strong>Client Address:</strong> ${cust.client_address}</p>
+            <p><strong>Municipality:</strong> ${cust.municipality}</p>
+            <p><strong>Barangay:</strong> ${cust.barangay}</p>
+            <p><strong>Street:</strong> ${cust.street}</p>
+            <p><strong>House No.:</strong> ${cust.house_number}</p>
+            <p><strong>Email:</strong> ${cust.email}</p>
+            <p><strong>Mobile:</strong> ${cust.mobile}</p>
+            <p><strong>Status:</strong> ${cust.status}</p>
+        </div>
+    `;
+
+    let printWindow = window.open('', '', 'height=800,width=1000');
+    printWindow.document.write('<html><head><title>Service Report</title></head><body>');
+    printWindow.document.write(content);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.print();
+}
+
+// Cancel dropdown
+function cancelSingleAppointment(id) {
+    const detailsDiv = document.getElementById(`appointmentDetails-${id}`);
+    detailsDiv.style.display = 'none';
+}
+
+function filterAppointments() {
+    const query = document.getElementById('searchAppointments').value.toLowerCase();
+    const items = document.querySelectorAll('.appointment-item');
+
+    items.forEach(item => {
+        const client = item.getAttribute('data-client');
+        const service = item.getAttribute('data-service');
+        const date = item.getAttribute('data-date');
+
+        if (client.includes(query) || service.includes(query) || date.includes(query)) {
+            item.parentElement.style.display = 'block'; // Show the wrapper div
+        } else {
+            item.parentElement.style.display = 'none'; // Hide the wrapper div
+        }
+    });
+}
+
+//--- for admin notification modal
+function toggleNotificationModal() {
+  const modal = document.getElementById('notificationModal');
+  modal.style.display = 'block';
+}
+
+function closeNotificationModal() {
+  document.getElementById('notificationModal').style.display = 'none';
+}
+
+// Optional: Close modal when clicking outside of it
+window.addEventListener('click', function(e) {
+  const modal = document.getElementById('notificationModal');
+  if (e.target === modal) {
+    modal.style.display = 'none';
+  }
+});
+
+//--- for  single notification modal
+function showNotificationDetail(notifId) {
+  fetch(`/get-notification-detail/?id=${notifId}`)
+    .then(response => response.json())
+    .then(data => {
+      const content = `
+        <p><strong>Technician:</strong> ${data.technician}</p>
+        <p><strong>Message:</strong> ${data.message}</p>
+        
+        <hr>
+        ${data.client_name ? `
+          <p><strong>Client:</strong> ${data.client_name}</p>
+          <p><strong>Service:</strong> ${data.service}</p>
+          <p><strong>Date:</strong> ${data.date}</p>
+          <p><strong>Time:</strong> ${data.time}</p>
+          <p><strong>Email:</strong> ${data.email}</p>
+          <p><strong>Mobile:</strong> ${data.mobile}</p>
+        ` : '<p>No appointment linked.</p>'}
+      `;
+      document.getElementById('notificationDetailContent').innerHTML = content;
+      document.getElementById('notificationDetailModal').style.display = 'block';
+    });
+}
+
+function closeNotificationDetail() {
+  document.getElementById('notificationDetailModal').style.display = 'none';
+}
+
+function showNotifTab(tab) {
+  // Hide all sections
+  document.querySelectorAll('.notif-section').forEach(s => s.style.display = 'none');
+
+  // Remove active state from all buttons
+  document.querySelectorAll('.notif-tab').forEach(btn => btn.classList.remove('active'));
+
+  // Show selected section
+  if (tab === 'all') {
+    document.getElementById('notif-all').style.display = 'block';
+    document.querySelector(".notif-tab:nth-child(1)").classList.add('active');
+  } 
+  else if (tab === 'tech') {
+    document.getElementById('notif-tech').style.display = 'block';
+    document.querySelector(".notif-tab:nth-child(2)").classList.add('active');
+  } 
+  else if (tab === 'cust') {
+    document.getElementById('notif-cust').style.display = 'block';
+    document.querySelector(".notif-tab:nth-child(3)").classList.add('active');
+  }
+}
+
+</script>
+</body>
+<style>
+body { 
+  margin: 0; 
+  font-family: Arial, 
+  sans-serif; 
+}
+/* Sticky Header */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  background: #010A28;
+  color: white;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+  #logo {
+      width: 100px;
+      height: 100px;
+      border-radius: 50px;
+      margin-bottom: 20px;
+      margin-top: 10px;
+  }
+
+.menu-btn, .logout-btn {
+  background: none; 
+  border: none; 
+  color: white; 
+  font-size: 16px; 
+  cursor: pointer;
+}
+.sidebar {
+  width: 250px; 
+  background: #010A28; 
+  height: 100vh; 
+  position: fixed;
+  top: 0; 
+  left: 0;
+  padding-top: 60px; 
+  transform: translateX(0); 
+  transition: transform 0.3s ease;
+}
+.sidebar.hidden { 
+  transform: translateX(-100%); 
+}
+.sidebar a {
+  display: block; 
+  padding: 15px 20px; 
+  color: white; 
+  text-decoration: none;
+}
+.sidebar a:hover { 
+  background: #2c3e50;
+}
+@media (max-width: 768px) {
+  .main {
+    margin-left: 0;
+  }
+  .sidebar {
+    position: fixed;
+    height: 100%;
+    z-index: 998;
+  }
+}
+
+.close-sidebar {
+  position: absolute; 
+  top: 10px; 
+  right: 10px; 
+  background: none; 
+  border: none; 
+  color: white;
+  font-size: 20px; 
+  cursor: pointer;
+}
+.main {
+  margin-left: 250px; 
+  padding: 20px;
+  transition: margin-left 0.3s ease;
+}
+.main.full { 
+  margin-left: 0; 
+}
+.header-nav a {
+  margin-left: 20px; 
+  color: white; 
+  text-decoration: none;
+}
+
+/* for main content */
+.card {
+  background: #CBDCEB;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-size: 30px;
+  padding: 20px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+.card1 {
+  /* background-image: url("{% static 'cidselpic6.jpg' %}");
+  background-size: cover;
+  background-position: center; */
+  background: #CBDCEB;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 0px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  text-align: center;
+}
+
+.card1 button {
+  background-color: #DDAA1E;
+  color: #000000ff;
+  border: none;
+  padding: 10px 18px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.card2 button {
+  background-color: #DDAA1E;
+  color: #000000ff;
+  border: none;
+  padding: 10px 18px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+
+}
+
+.card h1 {
+  font-size: 20px;
+  margin-bottom: 15px;
+  color: #000000ff;
+}
+
+.card1 h2 {
+  font-size: 20px;
+  margin-bottom: 15px;
+  color: #000000ff;
+}
+
+.card p {
+  margin: 8px 0;
+  font-size: 16px;
+  color: #000000ff;
+}
+
+.card1 p {
+  margin: 8px 0;
+  font-size: 16px;
+  color: #000000ff;
+}
+
+.card table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.card th, .card td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #ccc;
+  text-align: left;
+}
+
+.card th {
+  background-color: #eee;
+  color: #333;
+}
+
+/*this is for notification css*/
+.notification-wrapper {
+  position: relative;
+}
+
+.notification-button {
+  position: relative;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 18px; /* optional, adjust icon size */
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: red;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/*for Button MODAL*/
+/* Generic modal styling */
+.custom-modal {
+  display: none; 
+  position: fixed; 
+  z-index: 2000; 
+  left: 0; 
+  top: 0; 
+  width: 100%; 
+  height: 100%; 
+  overflow: auto; 
+  background-color: rgba(0,0,0,0.6); 
+}
+
+.custom-modal-content {
+  background-color: #fff;
+  margin: 10% auto; 
+  padding: 20px; 
+  border-radius: 10px; 
+  width: 90%; 
+  max-width: 600px; 
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+.close-btn {
+  color: #aaa; 
+  float: right; 
+  font-size: 24px; 
+  font-weight: bold; 
+  cursor: pointer;
+}
+.close-btn:hover { 
+  color: #000; 
+}
+
+/* Notification Tabs */
+.notif-tab {
+  padding: 10px 15px;
+  margin: 5px;
+  border: none;
+  background: #eee;
+  cursor: pointer;
+  border-radius: 8px;
+  font-weight: bold;
+  color: #DDAA1E;
+}
+
+.notif-tab.active {
+  background: #010A28;
+  color: white;
+}
+
+</style>
+</html>

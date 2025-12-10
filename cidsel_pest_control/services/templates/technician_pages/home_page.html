@@ -1,0 +1,313 @@
+{% extends 'technician_pages/technician_dashboard.html' %}
+{% block title %}Home Page{% endblock %}
+{% block content %}
+
+<div class="main-content">
+  <br>
+  <br>
+  <br>
+  <br>
+  <header class="page-header">
+    <h1>Technician Dashboard</h1>
+    <button id="translateBtn" class="translate-btn" onclick="toggleTranslation()">
+        See Translation
+    </button>
+  </header>
+
+  <div class="container">
+    <section>
+      <p>A Technician Dashboard is a digital interface designed to help technicians, engineers, or maintenance staff efficiently manage and track their work. It provides an overview of tasks, schedules, status updates, and sometimes even inventory or tools needed for jobs.</p>
+    </section>
+
+   
+    <section>
+      <h2>How to Use a Technician Dashboard</h2>
+      <div class="steps">
+        <ol>
+          <li>Log In: Enter your credentials to access your dashboard.</li>
+          <li>Review Tasks: Check the task list for new assignments. Note deadlines and priorities.</li>
+          <li>Update Status: As you start, progress, or finish a task, update its status. This keeps your team and supervisors informed.</li>
+          <li>View Your Schedule: Check your schedule for the day or week. Adjust your workflow if needed.</li>
+        </ol>
+      </div>
+    </section>
+
+    <section>
+      <h2>Workflow</h2>
+      <ul>
+        <li>Start your shift: Open the Technician Dashboard.</li>
+        <li>Check your tasks: See what jobs are assigned to you.</li>
+        <li>Prioritize: Focus on urgent or overdue tasks.</li>
+        <li>Update as you go: Change task status as you make progress.</li>
+        <li>Finish your shift: Ensure all completed tasks are marked as done.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Why Use a Technician Dashboard?</h2>
+      <ul>
+        <li>Efficiency: Save time by having all your tasks and info in one place.</li>
+        <li>Transparency: Everyone knows the status of each task.</li>
+        <li>Accountability: Track your work and progress.</li>
+      </ul>
+    </section>
+
+    <div class="summary">
+      <h3>In summary</h3>
+      <p>A Technician Dashboard helps you organize, track, and update your work efficiently, ensuring you stay on top of your responsibilities and communicate your progress clearly.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Notification Popup -->
+<div id="popup-container">
+  {% if notifications %}
+    {% for note in notifications %}
+      <div class="popup-notification" id="notif-{{ note.id }}">
+        <a href="{% url 'mark_notification_read' note.id %}">
+          🔔 {{ note.message }}
+        </a>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="popup-notification" id="no-notification" style="
+        background-color: rgba(128, 128, 128, 0.3); /* transparent grey */
+        color: #333;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        max-width: 300px;
+    ">
+      You have no notification
+    </div>
+  {% endif %}
+</div>
+
+<script>
+
+setInterval(() => {
+    fetch("/update-tech-status/")
+}, 3000); // every 15 seconds
+
+// Auto-hide all notifications after 30s
+window.addEventListener("DOMContentLoaded", () => {
+  setTimeout(() => {
+    document.querySelectorAll(".popup-notification").forEach(el => {
+      el.style.display = "none";
+    });
+  }, 5000); // 30 seconds
+});
+
+// for translating text
+let translated = false;
+
+function toggleTranslation() {
+    translated = !translated;
+
+    const btn = document.getElementById("translateBtn");
+
+    // English ↔ Tagalog dictionary (full sentences included)
+    const dict = {
+        "Technician Dashboard": "Technician Dashboard",
+
+        // Paragraphs
+        "A Technician Dashboard is a digital interface designed to help technicians, engineers, or maintenance staff efficiently manage and track their work. It provides an overview of tasks, schedules, status updates, and sometimes even inventory or tools needed for jobs.":
+        "Ang Technician Dashboard ay isang digital na interface na tumutulong sa mga teknikyan, inhinyero, o maintenance staff upang mahusay na pamahalaan at subaybayan ang kanilang trabaho. Nagbibigay ito ng kabuuang view ng mga gawain, iskedyul, status update, at minsan pati mga kagamitan na kailangan sa trabaho.",
+
+        "A Technician Dashboard helps you organize, track, and update your work efficiently, ensuring you stay on top of your responsibilities and communicate your progress clearly.":
+        "Ang Technician Dashboard ay tumutulong upang ayusin, subaybayan, at i-update ang iyong trabaho nang episyente, tinitiyak na nananatili kang nakatutok sa iyong mga responsibilidad at malinaw mong naipapahayag ang iyong progreso.",
+
+        // Section Titles
+        "How to Use a Technician Dashboard": "Paano Gamitin ang Technician Dashboard",
+        "Workflow": "Workflow",
+        "Why Use a Technician Dashboard?": "Bakit Gamitin ang Technician Dashboard?",
+        "In summary": "Buod",
+
+        // Full list sentences
+        "Log In: Enter your credentials to access your dashboard.":
+        "Mag-Log In: Ipasok ang iyong kredensyal upang ma-access ang dashboard.",
+        "Review Tasks: Check the task list for new assignments. Note deadlines and priorities.":
+        "Suriin ang Mga Gawain: Tingnan ang listahan ng mga bagong assignment. Tandaan ang deadlines at prayoridad.",
+        "Update Status: As you start, progress, or finish a task, update its status. This keeps your team and supervisors informed.":
+        "I-update ang Status: Habang nagsisimula, sumusulong, o nagtatapos ng gawain, i-update ang status. Pinapanatili nitong alam ng iyong team at supervisor ang progreso.",
+        "View Your Schedule: Check your schedule for the day or week. Adjust your workflow if needed.":
+        "Tingnan ang Iyong Iskedyul: Suriin ang iskedyul para sa araw o linggo. Ayusin ang workflow kung kinakailangan.",
+
+        "Start your shift: Open the Technician Dashboard.":
+        "Simulan ang iyong shift: Buksan ang Technician Dashboard.",
+        "Check your tasks: See what jobs are assigned to you.":
+        "Suriin ang iyong mga gawain: Tingnan ang mga job na naka-assign sa iyo.",
+        "Prioritize: Focus on urgent or overdue tasks.":
+        "Bigyan ng prayoridad: Tutukan ang mga urgent o overdue na gawain.",
+        "Update as you go: Change task status as you make progress.":
+        "I-update habang gumagawa: Palitan ang status ng gawain habang sumusulong.",
+        "Finish your shift: Ensure all completed tasks are marked as done.":
+        "Tapusin ang iyong shift: Siguraduhing lahat ng natapos na gawain ay naka-mark bilang done.",
+
+        "Efficiency: Save time by having all your tasks and info in one place.":
+        "Episyente: Makatipid ng oras sa pagkakaroon ng lahat ng gawain at impormasyon sa iisang lugar.",
+        "Transparency: Everyone knows the status of each task.":
+        "Transparency: Lahat ay alam ang status ng bawat gawain.",
+        "Accountability: Track your work and progress.":
+        "Responsibilidad: Subaybayan ang iyong trabaho at progreso."
+    };
+
+    // Target all relevant elements inside the container
+    const elements = document.querySelector(".container")
+        .querySelectorAll("h1, h2, h3, p, li, strong, span");
+
+    elements.forEach(el => {
+        const original = el.dataset.originalText || el.innerText.trim();
+
+        if (!el.dataset.originalText) {
+            el.dataset.originalText = el.innerText.trim();
+        }
+
+        if (translated) {
+            // Replace with full translation if available
+            el.innerText = dict[original] || original;
+        } else {
+            // Restore original English
+            el.innerText = el.dataset.originalText;
+        }
+    });
+
+    btn.innerText = translated ? "See Original" : "See Translation";
+}
+
+</script>
+
+<style>
+/* General Reset */
+body {
+  margin: 0;
+  padding: 0;
+  background: #f4f4f4;
+  font-family: Arial, sans-serif;
+}
+
+/* Main Content Area */
+.main-content {
+  background-color: #ffffff;
+  min-height: 100vh;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* Header styling */
+.page-header {
+  background: #DDAA1E;
+  color: #010A28;
+  padding: 15px;
+  text-align: center;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+/* Container */
+.container {
+  max-width: 100%;
+  margin: auto;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+section {
+  margin-bottom: 20px;
+}
+
+h2 {
+  color: #DDAA1E;
+}
+
+ul, ol {
+  padding-left: 20px;
+}
+
+.steps, .summary {
+  padding: 15px;
+  border-radius: 5px;
+}
+
+.steps {
+  background: #eef7ff;
+}
+
+.summary {
+  background: #DDAA1E;
+}
+
+/* Notification Styling */
+#popup-container {
+  position: fixed;
+  top: 70px;
+  right: 20px;
+  z-index: 1000;
+  max-width: 90%;
+}
+
+.popup-notification {
+  background-color: #010A28;
+  color: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  margin-bottom: 10px;
+  cursor: pointer;
+  max-width: 300px;
+}
+
+.popup-notification a {
+  color: white;
+  text-decoration: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 10px;
+  }
+
+  .main-content {
+    padding: 10px;
+  }
+
+  .popup-notification {
+    max-width: 90%;
+    font-size: 14px;
+  }
+
+  h1, h2, h3 {
+    font-size: 1.2em;
+  }
+
+  ul, ol {
+    padding-left: 15px;
+  }
+}
+
+.translate-btn {
+  background: #DDAA1E;
+  border-radius: 6px;
+  color: #010A28;
+  padding: 10px 18px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease; /* Smooth transition */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15); /* subtle shadow */
+}
+
+.translate-btn:hover {
+  background: #ddba5a; /* slightly darker yellow */
+  color: #010A28;
+  transform: scale(1.05); /* slightly enlarge */
+  box-shadow: 0 6px 15px rgba(0,0,0,0.25); /* stronger shadow */
+}
+
+
+</style>
+
+{% endblock %}

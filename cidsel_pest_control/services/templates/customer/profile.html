@@ -1,0 +1,1292 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Profile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<div class="header">
+    <div class="header-container">
+        <div class="logo-text">
+            <img id="logo" src="{% static 'cidsel_logo.png' %}" alt="CIDSEL Logo">
+            <div class="text-group">
+                <h1>
+                    <span class="brand">CIDSEL</span>
+                    <span class="service">Pest Control Services</span>
+                </h1>
+                <p class="subtitle">Professional pest control for residential and commercial properties</p>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+            <a href="{% url 'book_appointment' %}" class="appointment-button">Book Appointment</a>
+        
+            {% if user.is_authenticated %}
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-button">Logout</button>
+                </form>
+            {% endif %}
+
+            {% if not user.is_authenticated %}
+                <div class="button-container dropdown">
+                    <button class="dropdown-button">Sign In ▼</button>
+                    <div class="dropdown-content">
+                        <a href="{% url 'login' %}">Sign In</a>
+                        <a href="javascript:void(0);" onclick="openLoginOptions()">Admin Login</a>
+                    </div>
+                </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+        <span class="close" onclick="closeLoginOptions()">&times;</span>
+        <h3>Select Login Type</h3>
+        <a href="{% url 'admin_login' %}">
+            <button class="modal-button admin">Admin Login</button>
+        </a>
+        <a href="{% url 'technician_login' %}">
+            <button class="modal-button technician">Technician Login</button>
+        </a>
+        </div>
+    </div>
+
+    <div class="nav-bar">
+        <a href="{% url 'dashboard' %}">Home</a>
+        <a href="{% url 'services' %}">Services</a>
+        <a href="{% url 'faqs' %}">FAQs</a>
+
+        {% if user.is_authenticated %}
+            <a href="{% url 'feedback' %}">Feedback</a>
+        {% else %}
+            <div class="tooltip-wrapper">
+                <a href="{% url 'login' %}" class="tooltip-link">Feedback</a>
+                <span class="tooltip-text">Need to Sign In</span>
+            </div>
+        {% endif %}
+
+        {% if user.is_authenticated %}
+            <a href="{% url 'profile' %}">Profile</a>
+        {% else %}
+            <div class="tooltip-wrapper">
+                <a href="{% url 'login' %}" class="tooltip-link">Profile</a>
+                <span class="tooltip-text">Need to Sign In</span>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<div class="content">
+    <div class="profile-container">
+        <h2>My Profile</h2> 
+
+        <div class="profile-picture-container">
+            <img src="{{ user.profile.get_image_url }}" 
+                alt="Profile Picture" 
+                class="profile-picture">
+            <p class="profile-label">Profile Picture</p>
+        </div>
+
+        <div class="profile-item">
+            <span class="profile-label">Username:</span> {{ user.username }}
+        </div>
+
+        <div class="profile-item">
+            <span class="profile-label">Email:</span> {{ user.email }}
+        </div>
+
+        <div class="profile-item">
+            <span class="profile-label">My Appointments:</span>
+        </div>
+
+        {% if appointments %}
+            <!-- Toggle Button -->
+            {% if appointments|length > 10 %}
+                <div style="margin: 8px 0; text-align: left;">
+                    <button id="toggle-btn" style="
+                        background-color: #DDAA1E;
+                        color: white;
+                        padding: 6px 12px;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 13px;
+                    ">
+                        Show More
+                    </button>
+                </div>
+            {% endif %}
+
+            <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 10px;">
+                {% for appointment in appointments %}
+                    <div class="appointment-card" style="
+                        background-color: #9ad1f8ff;
+                        color: #333;
+                        padding: 10px 14px;
+                        border-radius: 14px;
+                        width: 220px;
+                        font-family: Arial, sans-serif;
+                        font-size: 14px;
+                        line-height: 1.4;
+                        box-shadow: 0px 1px 3px rgba(0,0,0,0.1);
+                        display: {% if forloop.counter <= 10 %}block{% else %}none{% endif %};
+                    ">
+                        <strong>📌 Appointment</strong>
+                        <ul style="list-style-type: none; padding: 4px 0 0 0; margin: 0;">
+                            <li><strong>Name:</strong> {{ appointment.client_name }}</li>
+                            <li><strong>Email:</strong> {{ appointment.email }}</li>
+                            <li><strong>Service:</strong> {{ appointment.service }}</li>
+                            <li><strong>Price:</strong> {{ appointment.estimated_price }}</li>
+                            <li><strong>Date:</strong> {{ appointment.date }}</li>
+                            <li><strong>Time:</strong> {{ appointment.time }}</li>
+                            <li><strong>Payment:</strong> {{ appointment.payment_method }}</li>
+                            <li><strong>Status:</strong> <strong>{{ appointment.status }}</strong></li>
+                        </ul>
+
+                        {% if appointment.payment_method == "Bank Transfer" or appointment.payment_method == "GCash" %}
+                            <!-- Show Upload Receipt Button -->
+                            <button class="apt-modal-btn" onclick="openModal('receiptModal-{{ appointment.id }}')" >
+                                Upload Receipt
+                            </button>
+                        {% endif %}
+                        <button class="apt-modal-btn" onclick="openProgressModal('progressModal-{{ appointment.id }}')">
+                            View Progress
+                        </button>
+
+                    </div>
+
+                    <!-- Receipt Upload Modal -->
+                    <div id="receiptModal-{{ appointment.id }}" class="modal" style="
+                        display: none;
+                        position: fixed;
+                        z-index: 1000;
+                        left: 0;
+                        top: 0;
+                        width: 100%;
+                        height: 100%;
+                        overflow: auto;
+                        background-color: rgba(0,0,0,0.5);
+                    ">
+                        <div style="
+                            background-color: #fff;
+                            margin: 10% auto;
+                            padding: 20px;
+                            border-radius: 10px;
+                            width: 350px;
+                            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+                        ">
+                            <span onclick="closeModal('receiptModal-{{ appointment.id }}')" 
+                                style="float:right; cursor:pointer; font-size: 20px;">&times;</span>
+                            <h3>Upload Receipt</h3>
+                            <form method="post" action="{% url 'upload_receipt' appointment.id %}" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                <input type="file" name="receipt" accept="image/*" required style="margin: 10px 0;">
+                                <button type="submit" style="
+                                    background-color: #010A28;
+                                    color: white;
+                                    padding: 6px 12px;
+                                    border: none;
+                                    border-radius: 6px;
+                                    cursor: pointer;
+                                ">Submit</button>
+                            </form>
+                        </div>
+                    </div>
+                    <!-- Progress Modal -->
+                    {% comment %} <div id="progressModal-{{ appointment.id }}" class="modal">
+                        <div class="modal-content">
+                            <span class="close" onclick="closeProgressModal('progressModal-{{ appointment.id }}')">&times;</span>
+                            <h3>Appointment Progress</h3>
+                        </div>
+                    </div> {% endcomment %}
+                    <!-- Progress Modal -->
+                    {% comment %} <div id="progressModal-{{ appointment.id }}" class="modal">
+                        <div class="progress-modal-content">
+                            <span class="close" onclick="closeProgressModal('progressModal-{{ appointment.id }}')">&times;</span>
+                            <h3>Appointment Progress</h3>
+
+                            {% with progress=appointment.verificationassignment_set.first.progress_status %}
+                            <div class="progress-container">
+                                <div class="progress-bar" style="
+                                    background-color: #6D94C5; 
+                                    height: 100%;
+                                    width: 
+                                        {% if progress == 'Initial Visit' %}15%
+                                        {% elif progress == 'Follow Up Visit' %}40%
+                                        {% elif progress == '2nd Follow Up Visit' %}50%
+                                        {% elif progress == '3rd Follow Up Visit' %}60%
+                                        {% elif progress == '4th Follow Up Visit' %}80%
+                                        {% elif progress == 'Last Visit' %}90%
+                                        {% elif progress == 'Completed' %}100%
+                                        {% else %}0%
+                                        {% endif %};
+                                    border-radius: 8px;
+                                    transition: width 0.5s;">
+                                </div>
+                            </div>
+
+                            <!-- progress bar -->
+                            <div class="progress-pointer-container">
+                                <div class="pointer {% if progress == 'Initial Visit' %}active{% endif %}">
+                                    <span class="circle"></span>
+                                    <p class="label">Initial Visit</p>
+                                </div>
+                                <div class="pointer {% if progress == 'Follow Up Visit' %}active{% endif %}">
+                                    <span class="circle"></span>
+                                    <p class="label">Follow Up Visit</p>
+                                </div>
+                                <div class="pointer {% if progress == '2nd Follow Up Visit' %}active{% endif %}">
+                                    <span class="circle"></span>
+                                    <p class="label">2nd Follow Up Visit</p>
+                                </div>
+                                <div class="pointer {% if progress == '3rd Follow Up Visit' %}active{% endif %}">
+                                    <span class="circle"></span>
+                                    <p class="label">3rd Follow Up Visit</p>
+                                </div>
+                                <div class="pointer {% if progress == '4th Follow Up Visit' %}active{% endif %}">
+                                    <span class="circle"></span>
+                                    <p class="label">4th Follow Up Visit</p>
+                                </div>
+                                <div class="pointer {% if progress == 'Last Visit' %}active{% endif %}">
+                                    <span class="circle"></span>
+                                    <p class="label">Last Visit</p>
+                                </div>
+                                <div class="pointer {% if progress == 'Completed' %}active{% endif %}">
+                                    <span class="circle"></span>
+                                    <p class="label">Completed</p>
+                                </div>
+                            </div>
+
+                            <p style="margin-top: 5px;">Current Stage: {{ progress|default:"Not started" }}</p>
+                            {% endwith %}
+
+                        </div>
+                    </div> {% endcomment %}
+                    <!-- NEW PROGRESS MODAL -->
+                    <div id="progressModal-{{ appointment.id }}" class="modal">
+                        <div class="progress-modal-content">
+                            <span class="close" onclick="closeProgressModal('progressModal-{{ appointment.id }}')">&times;</span>
+
+                            <h3>Appointment Progress</h3>
+
+                            <!-- Dynamic progress tracker container -->
+                            <div id="tracker-{{ appointment.id }}" class="progress-tracker"></div>
+
+                            <!-- Optional: show progress history (photos) later -->
+                            <div id="history-{{ appointment.id }}" style="margin-top:20px;"></div>
+
+                        </div>
+                    </div>
+                    
+                {% endfor %}
+            </div>
+
+        {% else %}
+            <p>No appointments found.</p>
+        {% endif %}
+
+
+        <a href="{% url 'edit_profile' %}" class="btn">Edit Profile</a>
+        {% if user.is_authenticated %}
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn">Logout</button>
+            </form>
+        {% endif %}
+    </div>
+</div>
+
+
+<!-- Upload Success Popup -->
+<div id="uploadSuccessPopup" style="
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #fff;
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    text-align: center;
+    font-family: Arial, sans-serif;
+    z-index: 2000;
+">
+    <p style="font-size: 18px; margin: 0;">Submitted!</p>
+    <p style="font-size: 36px; margin: 5px 0;">✅</p>
+</div>
+
+{% if user.is_authenticated %}
+<div class="chat-btn-wrapper">
+  <span id="chatNotification" class="chat-notification">!</span>
+  <button id="chatBtn" class="chat-button" onclick="openChat()">💬 Message Admin</button>
+</div>
+{% else %}
+<div class="chat-btn-wrapper">
+  <button id="chatBtn" class="chat-button disabled" title="Login to chat" disabled>💬 Login to Chat</button>
+</div>
+{% endif %}
+
+<!-- Chat Modal -->
+<div id="chatModal" class="chat-modal">
+  <div class="chat-modal-content">
+    <span class="close-chat" onclick="closeChat()">&times;</span>
+    <h2>Chat with Admin</h2>
+    <div id="chatMessages" class="chat-messages"></div>
+    <form id="chatForm">
+      <input type="text" id="chatInput" placeholder="Type your message..." required>
+      <button type="submit">Send</button>
+    </form>
+  </div>
+</div>
+
+
+<button id="backToTop" title="Go to top">🢁</button>
+
+</body>
+
+<footer class="site-footer">
+  <div class="footer-container">
+    <!-- Quick Contact -->
+    <div class="footer-section">
+      <h2>Quick Contact</h2>
+      <p>Email: <a href="mailto:cidselpestcontrol@gmail.com">cidselpestcontrol@gmail.com</a></p>
+      <p><strong>Phone</strong></p>
+      <ul>
+        <li>0948-285-7626</li>
+        <li>0939-135-7361</li>
+        <li>0998-576-4850</li>
+      </ul>
+    </div>
+
+    <!-- Location -->
+    <div class="footer-section">
+      <h2>Our Location</h2>
+      <p>
+        Purok 7, Sampaloc Santo Cristo, <br>
+        Sariaya, Philippines, 4322
+      </p>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <p>&copy; {{ now|date:"Y" }} CIDSEL Pest Control Services. All Rights Reserved.</p>
+  </div>
+</footer>
+
+<script>
+// for show more functions
+document.addEventListener("DOMContentLoaded", function() {
+    const toggleBtn = document.getElementById("toggle-btn");
+    const cards = document.querySelectorAll(".appointment-card");
+
+    if (toggleBtn) {
+        toggleBtn.addEventListener("click", function() {
+            let isExpanded = toggleBtn.getAttribute("data-expanded") === "true";
+
+            if (!isExpanded) {
+                // Show all
+                cards.forEach(card => card.style.display = "block");
+                toggleBtn.textContent = "Show Less";
+                toggleBtn.setAttribute("data-expanded", "true");
+            } else {
+                // Hide back to 10
+                cards.forEach((card, index) => {
+                    card.style.display = index < 10 ? "block" : "none";
+                });
+                toggleBtn.textContent = "Show More";
+                toggleBtn.setAttribute("data-expanded", "false");
+            }
+        });
+    }
+});
+
+// to fix nav bar on top when scrolling
+window.addEventListener("scroll", function() {
+    const nav = document.querySelector(".nav-bar");
+    const header = document.querySelector(".header");
+
+    if (window.scrollY >= header.offsetHeight) {
+        nav.classList.add("fixed-nav");
+    } else {
+        nav.classList.remove("fixed-nav");
+    }
+});
+
+// Back to Top button functionality
+const backToTop = document.getElementById("backToTop");
+
+window.onscroll = function () {
+  if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
+    backToTop.style.display = "block";
+  } else {
+    backToTop.style.display = "none";
+  }
+};
+
+backToTop.onclick = function () {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+// for payment modal
+function openModal(id) {
+    document.getElementById(id).style.display = "block";
+}
+function closeModal(id) {
+    document.getElementById(id).style.display = "none";
+}
+
+// Chat system
+function openChat() {
+  document.getElementById("chatModal").style.display = "block";
+  loadMessages();
+}
+
+function closeChat() {
+  document.getElementById("chatModal").style.display = "none";
+}
+
+async function loadMessages() {
+  const res = await fetch("{% url 'load_messages' %}");
+  const data = await res.json();
+  const container = document.getElementById("chatMessages");
+  container.innerHTML = "";
+  data.messages.forEach(m => {
+    const msgDiv = document.createElement("div");
+    msgDiv.className = m.is_admin ? "admin-msg" : "user-msg";
+    msgDiv.textContent = `${m.sender}: ${m.message}`;
+    container.appendChild(msgDiv);
+  });
+  container.scrollTop = container.scrollHeight;
+}
+
+// Refresh messages every 5s
+setInterval(loadMessages, 5000);
+
+document.getElementById("chatForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById("chatInput").value;
+  await fetch("{% url 'send_message' %}", {
+    method: "POST",
+    headers: { "X-CSRFToken": "{{ csrf_token }}" },
+    body: new URLSearchParams({ message: msg })
+  });
+  document.getElementById("chatInput").value = "";
+  loadMessages();
+});
+
+// Close modal when clicking outside
+window.addEventListener("click", function (event) {
+  const modal = document.getElementById("chatModal");
+  if (event.target === modal) {
+    closeChat();
+  }
+});
+
+//chat notif
+let lastMessageCount = 0;
+const chatBadge = document.getElementById("chatNotification");
+
+async function checkNewMessages() {
+  const res = await fetch("{% url 'load_messages' %}");
+  const data = await res.json();
+  const messages = data.messages;
+
+  // Count admin messages
+  const adminMessages = messages.filter(m => m.is_admin);
+
+  // If new admin message arrived, show "!"
+  if (adminMessages.length > lastMessageCount && document.getElementById("chatModal").style.display !== "block") {
+    chatBadge.style.display = "block";
+  }
+
+  lastMessageCount = adminMessages.length;
+}
+
+setInterval(checkNewMessages, 5000);
+
+// Hide badge when chat is opened
+function openChat() {
+  document.getElementById("chatModal").style.display = "block";
+  chatBadge.style.display = "none";
+  loadMessages();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const chatModal = document.getElementById("chatModal");
+  const chatBadge = document.getElementById("chatNotification");
+  let lastMessageCount = 0;
+
+  async function checkNewMessages() {
+    try {
+      const res = await fetch("{% url 'load_messages' %}");
+      const data = await res.json();
+      const adminMessages = data.messages.filter(m => m.is_admin);
+
+      // Show badge only if modal is closed and new message appears
+      if (adminMessages.length > lastMessageCount && chatModal.style.display !== "block") {
+        chatBadge.style.display = "block";
+      }
+      lastMessageCount = adminMessages.length;
+    } catch (err) {
+      console.error("Message check failed:", err);
+    }
+  }
+
+  setInterval(checkNewMessages, 2000);
+
+  // Wrap the existing openChat to hide badge when chat opens
+  window.openChat = function() {
+    chatModal.style.display = "block";
+    chatBadge.style.display = "none";
+    loadMessages();
+  };
+
+  window.closeChat = function() {
+    chatModal.style.display = "none";
+  };
+
+  // Close modal on outside click
+  window.addEventListener("click", (event) => {
+    if (event.target === chatModal) {
+      closeChat();
+    }
+  });
+});
+
+//for pop up success 
+// Show popup if URL contains ?uploaded=1
+window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('uploaded') === '1') {
+        const popup = document.getElementById('uploadSuccessPopup');
+        popup.style.display = 'block';
+        setTimeout(() => {
+            popup.style.display = 'none';
+            // Remove query param so popup doesn't show on refresh
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }, 2000);
+    }
+});
+
+
+function updateProgressModal(appointmentId) {
+    const tracker = document.querySelector(`#progress-${appointmentId}`);
+    if (!tracker) return;
+
+    const steps = [...tracker.querySelectorAll(".step")];
+    let activeStepIndex = steps.findIndex(step => step.classList.contains("completed"));
+
+    steps.forEach((step, index) => {
+        if(index <= activeStepIndex){
+            step.classList.add("completed");
+            step.classList.remove("active");
+        } else {
+            step.classList.remove("completed");
+            step.classList.remove("active");
+        }
+    });
+}
+
+// Open progress modal and animate
+// --- OPEN PROGRESS MODAL ---
+function openProgressModal(modalId) {
+    document.getElementById(modalId).style.display = "block";
+
+    // Extract appointment ID
+    const appointmentId = modalId.split("-")[1];
+    loadProfileProgress(appointmentId);
+}
+
+// --- CLOSE MODAL ---
+function closeProgressModal(id) {
+    document.getElementById(id).style.display = "none";
+}
+
+window.addEventListener("click", function(event) {
+    // Close any progress modal when clicking outside content box
+    document.querySelectorAll(".modal").forEach(modal => {
+        if (event.target === modal) {
+            modal.style.display = "none";
+        }
+    });
+});
+
+// --- LOAD PROGRESS STEPS FROM BACKEND ---
+function loadProfileProgress(appointmentId) {
+
+    fetch(`/get-progress-steps/?appointment_id=${appointmentId}`)
+    .then(res => res.json())
+    .then(data => {
+
+        const tracker = document.getElementById(`tracker-${appointmentId}`);
+        tracker.innerHTML = "";  // clear old
+
+        if (!data.success) {
+            tracker.innerHTML = `<p>No progress yet.</p>`;
+            return;
+        }
+
+        // Insert steps dynamically
+        data.steps.forEach(step => {
+            tracker.innerHTML += `
+                <div class="step" data-step="${step}">
+                    <span class="dot">
+                        <svg class="checkmark" viewBox="0 0 24 24">
+                            <path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/>
+                        </svg>
+                    </span>
+                    <label>${step}</label>
+                </div>
+            `;
+        });
+
+        // Animate bar
+        animateProfileProgress(appointmentId, data.current_status);
+    });
+}
+
+
+// --- ANIMATE COMPLETION LINE + DOTS ---
+function animateProfileProgress(appointmentId, currentStatus) {
+
+    const tracker = document.getElementById(`tracker-${appointmentId}`);
+    const steps = [...tracker.querySelectorAll(".step")];
+
+    const currentIndex = steps.findIndex(s => s.dataset.step === currentStatus);
+    const total = steps.length - 1;
+
+    // Fill line
+    tracker.style.setProperty("--line-fill", (currentIndex / total * 100) + "%");
+
+    // Activate dots
+    steps.forEach((step, i) => {
+        if (i < currentIndex) {
+            step.classList.add("completed");
+        } else if (i === currentIndex) {
+            step.classList.add("completed");
+            step.classList.add("active");
+        }
+    });
+}
+
+
+</script>
+
+<style>
+body {
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #E8F9FF;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+.header {
+    background-color: #010A28;
+    color: white;
+    padding: 10px 0;
+    position: relative;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+}
+
+.header-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+}
+
+.logo-text {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+#logo {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+}
+
+.text-group {
+    text-align: left;
+}
+
+.brand {
+    color: white;
+    font-weight: bold;
+    font-size: 22px;
+}
+
+.service {
+    color: #DDAA1E;
+    font-weight: bold;
+    font-size: 22px;
+}
+
+.subtitle {
+    color: #ccc;
+    margin-top: 4px;
+    font-size: 14px;
+}
+
+.logout-button,
+.appointment-button {
+    background-color: #DDAA1E;
+    color: #010A28;
+    font-weight: bold;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 5px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.logout-button:hover,
+.appointment-button:hover {
+    background-color: #c2941a;
+}
+
+.nav-bar {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    padding: 10px;
+    flex-wrap: wrap;
+}   
+
+.fixed-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #010A28;
+    z-index: 999;
+}
+
+.nav-bar a {
+    text-decoration: none;
+    color: #f5f5f5;
+    font-weight: bold;
+    padding: 5px 22px;
+    border-radius: 5px;
+    transition: background 0.2s;
+}
+
+.nav-bar a.active,
+.nav-bar a:hover {
+    background-color: #DDAA1E;
+    color: #fff;
+}
+
+.tooltip-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip-text {
+    visibility: hidden;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 4px;
+    padding: 5px 8px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%; /* position above the link */
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 1s;
+    white-space: nowrap;
+}
+
+.tooltip-wrapper:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+.tooltip-link {
+    text-decoration: none;
+    color: #f5f5f5;
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 5px;
+    transition: background 0.2s;
+}
+
+.tooltip-link:hover {
+    background-color: #DDAA1E;
+    color: #fff;
+}
+
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+    .header-container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .logo-text {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        width: 100%;
+    }
+
+    .text-group {
+        text-align: center;
+    }
+
+    .brand, .service {
+        font-size: 20px;
+    }
+
+    .subtitle {
+        font-size: 12px;
+    }
+
+    .logout-button,
+    .appointment-button {
+        width: 100%;
+        text-align: center;
+    }
+
+    .nav-bar {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .nav-bar a {
+        width: 100%;
+        max-width: 200px;
+        text-align: center;
+    }
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background-color: #E8F9FF;
+    margin: 20% auto;
+    padding: 20px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 350px;
+    text-align: center;
+    position: relative;
+    border: 2px solid #DDAA1E;
+}
+
+.close {
+    color: #aaa;
+    position: absolute;
+    right: 15px;
+    top: 10px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: black;
+}
+
+.modal-button {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 10px;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.modal-button.admin {
+    background-color: #010A28;
+    color: white;
+}
+
+.modal-button.technician {
+    background-color: #DDAA1E;
+    color: #010A28;
+}
+
+.modal-button:hover {
+    opacity: 0.85;
+}
+
+.apt-modal-btn {
+    margin-top: 8px;
+    background-color: #010A28;
+    color: white;
+    padding: 6px 10px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.apt-modal-btn:hover {
+    background-color: #DDAA1E;
+}
+
+
+/*This is for profile css*/
+.profile-container {
+    background: #E8F9FF;
+    padding: 30px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 100%;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    text-align: left;
+}
+
+h2 {
+    font-size: 24px;
+    color: #010A28;
+    margin-bottom: 20px;
+}
+
+.profile-item {
+    margin: 15px 0;
+    font-size: 16px;
+}
+
+.profile-label {
+    font-weight: bold;
+    color: #010A28;
+}
+
+.btn {
+    display: inline-block;
+    margin-top: 25px;
+    padding: 12px 20px;
+    background-color: #010A28;
+    color: white;
+    font-weight: bold;
+    font-size: 15px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn:hover {
+    background-color: #DDAA1E;
+}
+
+/* for profile pic*/
+.profile-picture-container {
+    flex: 0 0 150px;
+    text-align: center;
+}
+
+.profile-picture {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #010A28;
+}
+
+.profile-label {
+    margin-top: 10px;
+}
+
+/*FOOTER*/
+.site-footer {
+    background-color: #010A28;
+    color: white;
+    padding: 40px 20px 20px;
+    margin-top: 50px;
+}
+
+.footer-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.footer-section {
+    flex: 1;
+    min-width: 250px;
+}
+
+.footer-section h2 {
+    color: #DDAA1E;
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+.footer-section p,
+.footer-section ul {
+    margin: 5px 0;
+    font-size: 15px;
+}
+
+.footer-section ul {
+    list-style: none;
+    padding: 0;
+}
+
+.footer-section ul li {
+    margin: 3px 0;
+}
+
+.footer-section a {
+    color: #DDAA1E;
+    text-decoration: none;
+}
+
+.footer-section a:hover {
+    text-decoration: underline;
+}
+
+.footer-bottom {
+    text-align: center;
+    border-top: 1px solid #444;
+    margin-top: 30px;
+    padding-top: 15px;
+    font-size: 14px;
+    color: #bbb;
+}
+
+/* Back to Top Button */
+#backToTop {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 5000; /* above all content */
+  background-color: #010A28;
+  color: white;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  opacity: 0.5; /* 50% transparent */
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#backToTop:hover {
+  opacity: 0.9;
+  transform: scale(1.1);
+}
+
+/* for chat system*/
+.chat-button {
+  position: fixed;
+  bottom: 75px;
+  right: 20px;
+  background: #DDAA1E;
+  color: #010A28;
+  padding: 16px 20px;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  font-weight: bold;
+  opacity: 80%;
+}
+.chat-button.disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 80%;
+}
+
+.chat-modal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+}
+.chat-modal-content {
+  background: #fff;
+  margin: 10% auto;
+  padding: 20px;
+  max-width: 400px;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+}
+.chat-messages {
+  height: 300px;
+  overflow-y: auto;
+  background: #f9f9f9;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+.user-msg {
+  text-align: right;
+  background: #DDAA1E;
+  color: white;
+  margin: 5px;
+  padding: 8px 12px;
+  border-radius: 10px 10px 0 10px;
+}
+.admin-msg {
+  text-align: left;
+  background: #eee;
+  margin: 5px;
+  padding: 8px 12px;
+  border-radius: 10px 10px 10px 0;
+}
+
+.chat-btn-wrapper {
+  position: fixed;
+  bottom: 145px;
+  right: 20px;
+}
+
+.chat-notification {
+  position: absolute;
+  top: 5px;
+  right: 10px;
+  background: red;
+  color: white;
+  font-weight: bold;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+  text-align: center;
+  line-height: 18px;
+  display: none; /* hidden by default */
+  box-shadow: 0 0 5px rgba(0,0,0,0.3);
+}
+
+/* Progress Tracker */
+.progress-modal-content {
+    background-color: #E8F9FF;
+    margin: 20% auto;
+    padding: 20px;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 900px;
+    text-align: center;
+    position: relative;
+    border: 2px solid #DDAA1E;
+}
+
+.progress-container {
+    background: #ffffffff; border-radius: 20px; width: 100%; height: 30px;"
+}
+
+
+/* NEW Animated Progress Tracker (same as verification_route) */
+.progress-tracker {
+  margin-top: 40px;
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  --line-fill: 0%;
+}
+
+.progress-tracker::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #d8d8d8;
+}
+
+.progress-tracker::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 0;
+  height: 4px;
+  background: #6D94C5;
+  width: var(--line-fill);
+  transition: width 0.4s ease;
+}
+
+.step {
+  width: 100%;
+  text-align: center;
+  z-index: 2;
+}
+
+.step .dot {
+  width: 20px;
+  height: 20px;
+  margin: 0 auto;
+  background: #cfcfcf;
+  border-radius: 50%;
+  border: 2px solid #cfcfcf;
+  transition: 0.3s;
+}
+
+.step.completed .dot {
+  background: #6D94C5;
+  border-color: #6D94C5;
+}
+
+.step.active .dot {
+  background: #6D94C5;
+  border-color: #6D94C5;
+  box-shadow: 0 0 8px rgba(16,85,201,0.6);
+}
+
+.checkmark {
+  width: 16px;
+  height: 16px;
+  stroke: white;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.25s;
+}
+
+.step.completed .checkmark {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.step label {
+  margin-top: 20px;
+  font-size: 12px;
+  margin-bottom: 40px;
+}
+
+</style>
+</html>

@@ -1,0 +1,1060 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+</head>
+<body>
+<div class="sidebar" id="sidebar">
+  <button class="close-sidebar" onclick="toggleSidebar()">←</button>
+  <a href="{% url 'analytics' %}">Analytics</a>
+  <a href="{% url 'pest_activity' %}">Pest Activity</a>
+  <a href="{% url 'sales' %}">sales</a>
+  <a href="{% url 'reports' %}">Reports</a>
+</div>
+
+<div class="header">
+  <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+  <div class="header-nav">
+    <a href="{% url 'admin_home' %}">Home</a>
+    <a href="{% url 'appointment' %}">Appointment</a>
+    <a href="{% url 'customers' %}">Customers</a>
+    <a href="{% url 'inventory' %}">Inventory</a>
+  </div>
+  <div class="notification-wrapper">
+    <button onclick="toggleNotificationModal()" class="notification-button">
+      🔔
+      {% if notifications|length > 0 %}
+        <span class="notification-badge">
+          {{ notifications|length }}
+        </span>
+      {% endif %}
+    </button>
+  </div>
+
+  <form action="{% url 'logout' %}" method="post" style="margin: 0;">
+    {% csrf_token %}
+    <button class="logout-btn">Logout</button>
+  </form>
+</div>
+
+<div class="main" id="mainContent">
+  <section class="dashboard-section quick-action">
+    <h1>Quick Action</h1>
+    <p>Admin tools for managing customer information</p>
+    <div class="button-group">
+      <a href="{% url 'upload' %}"><button>Upload Photo</button></a>
+    </div>
+  </section>
+
+  <!-- Trigger button -->
+  <div class="chat-btn-wrapper">
+    <button onclick="openAdminChat()" class="chat-btn-icon">
+      <img src="{% static 'chat.png' %}" class="chat-icon">
+    </button>
+    <span id="adminChatNotification" class="chat-notification">!</span>
+  </div>
+  <!-- Admin Chat Modal -->
+  <div id="adminChatModal" class="chat-modal">
+    <div class="chat-modal-content">
+      <h1>Customer Messages</h1>
+      <p>customer message here for frequently asking qustions</p>
+      <span class="close-btn" onclick="closeAdminChat()">&times;</span>
+
+      <div id="adminChatBox" class="chat-box"></div>
+  
+      <form id="adminReplyForm" class="chat-form">
+        <input type="text" id="adminReplyInput" placeholder="Type reply..." required>
+        <button type="submit">Send</button>
+      </form>
+
+    </div>
+  </div>
+
+  <section class="dashboard-section kpi-matrix">
+    <h1>Customers & Technican Activity</h1>
+    <p>Rating distribution from customer & technician activity</p>
+
+    <div class="bubble-card1">
+      <h1>Customer Satisfactions</h1>
+      <button class="open-receipt-modal" onclick="openModal('SatisfactionsModal')">View Customer Satisfactions</button>
+    </div>
+    <!-- Customer Satisfactions Modal -->
+    <div id="SatisfactionsModal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn" onclick="closeModal('SatisfactionsModal')">&times;</span>
+        <h2>Customer Satisfactions</h2>
+
+        <!-- 🔍 Search Bar -->
+        <input type="text" id="feedbackSearch" placeholder="🔍︎ Search feedback..." onkeyup="searchFeedback()" class="search-bar">
+
+        <div class="feedback-list">
+          {% for fb in feedbacks %}
+              <div class="feedback-card">
+                  <div class="feedback-header">
+                      <strong class="feedback-user">{{ fb.user.username }}</strong>
+                      <small class="feedback-date">{{ fb.submitted_at|date:"M d, Y - H:i" }}</small>
+                      <p class="feedback-category"><strong>Category:</strong> {{ fb.category }}</p>
+                      <span class="feedback-stars">
+                          {% for i in "12345"|make_list %}
+                              {% if forloop.counter <= fb.rating %}
+                                  ★
+                              {% else %}
+                                  ☆
+                              {% endif %}
+                          {% endfor %}
+                      </span>
+                  </div>
+                  <p class="feedback-message">{{ fb.message }}</p>
+              </div>
+          {% empty %}
+              <p class="no-feedback">No feedback yet. Be the first to leave one!</p>
+          {% endfor %}
+        </div>
+      </div> 
+    </div>
+
+
+    <div class="bubble-card2">
+      <h1>Customers Payment Receipt</h1>
+      <button class="open-receipt-modal" onclick="openModal('receiptModal')">View Receipt</button>
+    </div>
+    
+    <!-- Receipt Modal -->
+    <div id="receiptModal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn" onclick="closeModal('receiptModal')">&times;</span>
+        <h2>Customer Payment Receipts</h2>
+
+        <!-- 🔍 Search Bar -->
+        <input type="text" id="receiptSearch" onkeyup="filterReceipts()" 
+              placeholder="🔍︎ Search by name, email, or payment..." class="search-bar">
+
+        {% if receipts %}
+        <div class="photo-preview-grid">
+          {% for r in receipts %}
+            <div class="photo-preview" style="position: relative;">
+              <img src="{{ r.data_uri }}" alt="Receipt" style="max-width:200px; border-radius:8px;">
+              <p><strong>{{ r.appointment.client_name }}</strong></p>
+              <small>{{ r.appointment.email }}</small><br>
+              <small>{{ r.appointment.payment_method }}</small><br>
+              <small>{{ r.appointment.date|date:"M d, Y" }}</small>
+              
+              <!-- Delete Button -->
+              <form method="post" action="{% url 'delete_receipt' r.id %}" style="margin-top:5px;">
+                {% csrf_token %}
+                <button type="submit" style="
+                    background-color: red;
+                    color: white;
+                    padding: 4px 8px;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                ">Archive</button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p>No receipts uploaded yet.</p>
+        {% endif %}
+
+      </div>
+    </div>
+
+
+
+    <div class="bubble-card3">
+      <h1>Technician Documentary</h1>
+      <button class="open-receipt-modal" onclick="openModal('DocumentaryModal')">View Documentary</button>
+    </div>
+    <!-- Documentary Modal -->
+    <div id="DocumentaryModal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn" onclick="closeModal('DocumentaryModal')">&times;</span>
+        <h2>Technician Documentary</h2>
+
+        <!-- 🔍 Search Bar -->
+        <input type="text" id="docSearch" onkeyup="filterDocs()" 
+              placeholder="🔍︎ Search by technician or date..." class="search-bar">
+
+        {% if photos %}
+          <div class="photo-preview-grid">
+            {% for photo in photos %}
+              <div class="photo-preview">
+                <img src="{{ photo.data_uri }}" alt="Tech Doc" style="max-width:200px;">
+
+                <p><strong>{{ photo.technician.username }}</strong></p>
+                <small>{{ photo.created_at|date:"M d, Y H:i" }}</small>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p>No photos uploaded yet.</p>
+        {% endif %}
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Admin Notification Modal -->
+  <div id="notificationModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:1000;">
+    <div style="background:#fff; padding:20px; margin:5% auto; width:90%; max-width:700px; border-radius:8px; position:relative;">
+
+      <h2 style="text-align:center;">Notifications</h2>
+
+      <!-- 🔘 Filter Buttons -->
+      <div style="text-align:center; margin-bottom:15px;">
+        <button class="notif-tab active" onclick="showNotifTab('all')">All</button>
+        <button class="notif-tab" onclick="showNotifTab('tech')">Technician</button>
+        <button class="notif-tab" onclick="showNotifTab('cust')">Customer</button>
+      </div>
+
+      <!-- All Notifications -->
+      <div id="notif-all" class="notif-section">
+        <h3>All Notifications</h3>
+        <hr>
+        <ul style="list-style:none; padding:0; max-height:300px; overflow-y:auto;">
+          {% for note in notifications %}
+            <li onclick="showNotificationDetail({{ note.id }})" style="border-bottom: 1px solid #ccc; padding: 10px 0; cursor: pointer;">
+              <strong>{{ note.technician.username }}</strong>: {{ note.message }}<br>
+              {% if note.appointment %}
+                <span><strong>Client Email:</strong> {{ note.appointment.email }}</span><br>
+                <span><strong>Client Mobile:</strong> {{ note.appointment.mobile }}</span><br>
+              {% endif %}
+              <small>{{ note.timestamp|date:"M d, Y H:i" }}</small>
+            </li>
+          {% endfor %}
+          {% for cnote in customer_notifications %}
+            <li style="border-bottom: 1px solid #ccc; padding: 10px 0;">
+              <strong>{{ cnote.client_name }}</strong> booked an appointment<br>
+              <span><strong>Service:</strong> {{ cnote.appointment.service }}</span><br>
+              <span><strong>Date:</strong> {{ cnote.appointment.date }}</span>  
+              <span><strong>Time:</strong> {{ cnote.appointment.time }}</span><br>
+              <span><strong>Email:</strong> {{ cnote.appointment.email }}</span><br>
+              <span><strong>Mobile:</strong> {{ cnote.appointment.mobile }}</span><br>
+              <small>{{ cnote.timestamp|date:"M d, Y H:i" }}</small>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- Technician Notifications Only -->
+      <div id="notif-tech" class="notif-section" style="display:none;">
+        <h3>Technician Notifications</h3>
+        <hr>
+        <ul style="list-style:none; padding:0; max-height:300px; overflow-y:auto;">
+          {% for note in notifications %}
+            <li onclick="showNotificationDetail({{ note.id }})" style="border-bottom: 1px solid #ccc; padding: 10px 0; cursor: pointer;">
+              <strong>{{ note.technician.username }}</strong>: {{ note.message }}<br>
+              <small>{{ note.timestamp|date:"M d, Y H:i" }}</small>
+            </li>
+          {% empty %}
+            <li>No technician notifications found.</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- Customer Notifications Only -->
+      <div id="notif-cust" class="notif-section" style="display:none;">
+        <h3>Customer Notifications</h3>
+        <hr>
+        <ul style="list-style:none; padding:0; max-height:300px; overflow-y:auto;">
+          {% for cnote in customer_notifications %}
+            <li style="border-bottom: 1px solid #ccc; padding: 10px 0;">
+              <strong>{{ cnote.client_name }}</strong> booked an appointment<br>
+              <span><strong>Service:</strong> {{ cnote.appointment.service }}</span><br>
+              <small>{{ cnote.timestamp|date:"M d, Y H:i" }}</small>
+            </li>
+          {% empty %}
+            <li>No customer notifications.</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <button onclick="closeNotificationModal()" style="margin-top: 20px;">Close</button>
+    </div>
+  </div>
+
+
+  <!-- Single Notification Detail Modal -->
+  <div id="notificationDetailModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:1000;">
+    <div style="background:#fff; padding:20px; margin:10% auto; width:90%; max-width:600px; border-radius:8px; position:relative;">
+      <h3>Notification Details</h3>
+      <div id="notificationDetailContent"></div>
+      <button onclick="closeNotificationDetail()" style="margin-top: 20px;">Close</button>
+    </div>
+  </div>
+
+
+</div>
+
+<script>
+function toggleSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  const main = document.getElementById("mainContent");
+  sidebar.classList.toggle("hidden");
+  main.classList.toggle("full");
+}
+
+//--- for admin notification modal
+function toggleNotificationModal() {
+  const modal = document.getElementById('notificationModal');
+  modal.style.display = 'block';
+  
+  // Hide the customer notification badge when modal opens
+  const customerBadge = document.getElementById('customerNotifBadge');
+  if (customerBadge) {
+    customerBadge.style.display = 'none';
+  }
+}
+
+function closeNotificationModal() {
+  document.getElementById('notificationModal').style.display = 'none';
+}
+
+// Optional: Close modal when clicking outside of it
+window.addEventListener('click', function(e) {
+  const modal = document.getElementById('notificationModal');
+  if (e.target === modal) {
+    modal.style.display = 'none';
+  }
+});
+
+
+
+function openModal(id) {
+  document.getElementById(id).style.display = "block";
+}
+
+function closeModal(id) {
+  document.getElementById(id).style.display = "none";
+}
+
+// Close when clicking outside ANY modal
+window.onclick = function(event) {
+  let modals = document.getElementsByClassName("modal");
+  for (let i = 0; i < modals.length; i++) {
+    if (event.target == modals[i]) {
+      modals[i].style.display = "none";
+    }
+  }
+}
+
+// for searching feedback
+function searchFeedback() {
+  let input = document.getElementById("feedbackSearch");
+  let filter = input.value.toLowerCase();
+  let feedbackCards = document.getElementsByClassName("feedback-card");
+
+  for (let i = 0; i < feedbackCards.length; i++) {
+    let card = feedbackCards[i];
+    let text = card.innerText.toLowerCase();
+    if (text.includes(filter)) {
+      card.style.display = "";
+    } else {
+      card.style.display = "none";
+    }
+  }
+}
+
+// for filtering receipts
+function filterReceipts() {
+  let input = document.getElementById("receiptSearch").value.toLowerCase();
+  let cards = document.querySelectorAll("#receiptContainer .receipt-card");
+
+  cards.forEach(card => {
+      let name = card.querySelector(".receipt-name").innerText.toLowerCase();
+      let email = card.querySelector(".receipt-email").innerText.toLowerCase();
+      let payment = card.querySelector(".receipt-payment").innerText.toLowerCase();
+
+      if (name.includes(input) || email.includes(input) || payment.includes(input)) {
+          card.style.display = "block";
+      } else {
+          card.style.display = "none";
+      }
+  });
+}
+
+// for filtering documentary
+function filterDocs() {
+  let input = document.getElementById("docSearch").value.toLowerCase();
+  let cards = document.querySelectorAll("#docContainer .doc-card");
+
+  cards.forEach(card => {
+      let name = card.querySelector(".doc-name").innerText.toLowerCase();
+      let date = card.querySelector(".doc-date").innerText.toLowerCase();
+
+      if (name.includes(input) || date.includes(input)) {
+          card.style.display = "block";
+      } else {
+          card.style.display = "none";
+      }
+  });
+}
+
+
+//--- for  single notification modal
+function showNotificationDetail(notifId) {
+  fetch(`/get-notification-detail/?id=${notifId}`)
+    .then(response => response.json())
+    .then(data => {
+      const content = `
+        <p><strong>Technician:</strong> ${data.technician}</p>
+        <p><strong>Message:</strong> ${data.message}</p>
+        
+        <hr>
+        ${data.client_name ? `
+          <p><strong>Client:</strong> ${data.client_name}</p>
+          <p><strong>Service:</strong> ${data.service}</p>
+          <p><strong>Date:</strong> ${data.date}</p>
+          <p><strong>Time:</strong> ${data.time}</p>
+          <p><strong>Email:</strong> ${data.email}</p>
+          <p><strong>Mobile:</strong> ${data.mobile}</p>
+        ` : '<p>No appointment linked.</p>'}
+      `;
+      document.getElementById('notificationDetailContent').innerHTML = content;
+      document.getElementById('notificationDetailModal').style.display = 'block';
+    });
+}
+
+function closeNotificationDetail() {
+  document.getElementById('notificationDetailModal').style.display = 'none';
+}
+
+
+//--- for chat system
+// Open & Close Modal
+function openAdminChat() {
+  document.getElementById("adminChatModal").style.display = "block";
+  loadAdminChat();
+}
+function closeAdminChat() {
+  document.getElementById("adminChatModal").style.display = "none";
+}
+
+// Close when clicking outside
+window.addEventListener("click", function (event) {
+  const modal = document.getElementById("adminChatModal");
+  if (event.target === modal) {
+    closeAdminChat();
+  }
+});
+
+async function loadAdminChat() {
+  const res = await fetch("{% url 'load_messages' %}");
+  const data = await res.json();
+  const box = document.getElementById("adminChatBox");
+  box.innerHTML = "";
+  data.messages.forEach(m => {
+    const div = document.createElement("div");
+    div.className = m.is_admin ? "admin-msg" : "user-msg";
+    div.textContent = `${m.sender}: ${m.message}`;
+    box.appendChild(div);
+  });
+  box.scrollTop = box.scrollHeight;
+}
+
+setInterval(loadAdminChat, 5000);
+loadAdminChat();
+
+document.getElementById("adminReplyForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById("adminReplyInput").value;
+  await fetch("{% url 'admin_send_message' %}", {
+    method: "POST",
+    headers: { "X-CSRFToken": "{{ csrf_token }}" },
+    body: new URLSearchParams({ message: msg })
+  });
+  document.getElementById("adminReplyInput").value = "";
+  loadAdminChat();
+});
+
+let lastUserMessageCount = 0;
+const adminBadge = document.getElementById("adminChatNotification");
+
+async function checkUserMessages() {
+  const res = await fetch("{% url 'load_messages' %}");
+  const data = await res.json();
+  const messages = data.messages;
+
+  // Count user messages (non-admin)
+  const userMessages = messages.filter(m => !m.is_admin);
+
+  // If new user message arrived, show "!"
+  if (userMessages.length > lastUserMessageCount && document.getElementById("adminChatModal").style.display !== "block") {
+    adminBadge.style.display = "block";
+  }
+
+  lastUserMessageCount = userMessages.length;
+}
+
+setInterval(checkUserMessages, 5000);
+
+// Hide badge when admin opens chat
+function openAdminChat() {
+  document.getElementById("adminChatModal").style.display = "block";
+  adminBadge.style.display = "none";
+  loadAdminChat();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const adminModal = document.getElementById("adminChatModal");
+  const adminBadge = document.getElementById("adminChatNotification");
+  let lastUserMessageCount = 0;
+
+  async function checkUserMessages() {
+    try {
+      const res = await fetch("{% url 'load_messages' %}");
+      const data = await res.json();
+      const userMessages = data.messages.filter(m => !m.is_admin);
+
+      if (userMessages.length > lastUserMessageCount && adminModal.style.display !== "block") {
+        adminBadge.style.display = "block";
+      }
+      lastUserMessageCount = userMessages.length;
+    } catch (err) {
+      console.error("User message check failed:", err);
+    }
+  }
+
+  setInterval(checkUserMessages, 5000);
+
+  window.openAdminChat = function() {
+    adminModal.style.display = "block";
+    adminBadge.style.display = "none";
+    loadAdminChat();
+  };
+
+  window.closeAdminChat = function() {
+    adminModal.style.display = "none";
+  };
+
+  window.addEventListener("click", (event) => {
+    if (event.target === adminModal) {
+      closeAdminChat();
+    }
+  });
+});
+
+
+function showNotifTab(tab) {
+  // Hide all sections
+  document.querySelectorAll('.notif-section').forEach(s => s.style.display = 'none');
+
+  // Remove active state from all buttons
+  document.querySelectorAll('.notif-tab').forEach(btn => btn.classList.remove('active'));
+
+  // Show selected section
+  if (tab === 'all') {
+    document.getElementById('notif-all').style.display = 'block';
+    document.querySelector(".notif-tab:nth-child(1)").classList.add('active');
+  } 
+  else if (tab === 'tech') {
+    document.getElementById('notif-tech').style.display = 'block';
+    document.querySelector(".notif-tab:nth-child(2)").classList.add('active');
+  } 
+  else if (tab === 'cust') {
+    document.getElementById('notif-cust').style.display = 'block';
+    document.querySelector(".notif-tab:nth-child(3)").classList.add('active');
+  }
+}
+
+</script>
+
+</body>
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f0f2f5;
+  }
+
+  /* Sticky Header */
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    background: #010A28;
+    color: white;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .menu-btn, .logout-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  .header-nav a {
+    margin-left: 20px;
+    color: white;
+    text-decoration: none;
+  }
+
+  .header-nav a:hover {
+    text-decoration: underline;
+    background-color: #2c3e50;
+  }
+
+/*this is for notification css*/
+.notification-wrapper {
+  position: relative;
+}
+
+.notification-button {
+  position: relative;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 18px; /* optional, adjust icon size */
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -10px;
+  background: red;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+
+/* Sidebar */
+.sidebar {
+  width: 250px;
+  background: #010A28;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  padding-top: 60px;
+  transition: transform 0.3s ease;
+}
+
+.sidebar.hidden {
+  transform: translateX(-100%);
+}
+
+.sidebar a {
+  display: block;
+  padding: 15px 20px;
+  color: white;
+  text-decoration: none;
+}
+
+.sidebar a:hover {
+  background: #2c3e50;
+}
+
+.close-sidebar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* Main Content */
+.main {
+  background-color: #fff;
+  margin-left: 250px;
+  padding: 30px;
+  transition: margin-left 0.3s ease;
+}
+
+.main.full {
+  margin-left: 0;
+}
+
+@media (max-width: 768px) {
+  .main {
+    margin-left: 0;
+  }
+  .sidebar {
+    position: fixed;
+    height: 100%;
+    z-index: 998;
+  }
+}
+
+/* Dashboard Cards */
+.dashboard-section {
+  background: #CBDCEB;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+  padding: 25px 30px;
+  margin-bottom: 25px;
+}
+
+.dashboard-section h1 {
+  margin-top: 0;
+  color: #010A28;
+}
+
+.dashboard-section p {
+  margin-bottom: 15px;
+  color: #555;
+  font-size: 14px;
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 15px;
+}
+
+.button-group button,
+.dashboard-section button {
+  background-color: #010A28;
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.button-group button:hover,
+.dashboard-section button:hover {
+  background-color: #02215d;
+}
+
+/*  for Bubble card*/
+.bubble-card1 {
+  background-color: #fff ;
+  background-size: cover;
+  background-position: center;              
+  border-radius: 20px;              
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);           
+  margin: 10px auto;                
+  width: 100%; 
+  height: 150px;                
+  text-align: center;               
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bubble-card2 {
+  background-color: #fff ;
+  background-size: cover;
+  background-position: center;              
+  border-radius: 20px;              
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);           
+  margin: 10px auto;                
+  width: 100%;  
+  height: 150px;                
+  text-align: center;               
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bubble-card3 {
+  background-color: #fff ;
+  background-size: cover;
+  background-position: center;              
+  border-radius: 20px;              
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);           
+  margin: 10px auto;                
+  width: 100%; 
+  height: 150px;                
+  text-align: center;               
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Hover effect */
+.bubble-card1:hover,
+.bubble-card2:hover,
+.bubble-card3:hover { 
+  transform: translateY(-5px); /* Lift up a bit */
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.bubble-card1 h1,
+.bubble-card2 h1,
+.bubble-card3 h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #010A28;
+  padding-top: 20px;
+}
+
+
+.simple-list {
+  list-style-type: disc;
+  padding-left: 20px;
+  margin-top: 12px;
+  font-size: 14px;
+  color: #444;
+}
+
+.simple-list li {
+  margin-bottom: 8px;
+}
+
+/* for viewing technician documentary*/
+.photo-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.photo-preview {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.photo-preview img {
+  width: 100%;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+.photo-preview p {
+  font-size: 12px;
+  margin: 0;
+}
+.photo-preview small {
+  font-size: 11px;
+  color: #777;
+}
+
+/* Modal Styling */
+
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed;
+  z-index: 2000;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6);
+}
+
+.modal-content {
+  background: white;
+  margin: 10% auto;
+  padding: 20px;
+  border-radius: 12px;
+  width: 80%;
+  max-width: 500px;
+  text-align: center;
+}
+
+.close-btn {
+  float: right;
+  font-size: 24px;
+  cursor: pointer;
+  color: #555;
+}
+
+.close-btn:hover {
+  color: red;
+}
+
+/* Search bar styling */
+.search-bar {
+  width: 80%;
+  padding: 10px 14px;
+  margin: 10px 0 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+.search-bar:focus {
+  outline: none;
+  border-color: #FFD93D;
+  box-shadow: 0 0 5px #FCC61D;
+}
+
+/*  for feedback*/
+.feedback-list {
+    display: flex;
+    flex-direction: column;
+    
+}
+
+.feedback-card {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-left: 5px solid #DDAA1E;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.feedback-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    flex-wrap: wrap;
+}
+
+.feedback-user {
+    font-weight: bold;
+    color: #010A28;
+}
+
+.feedback-stars {
+    color: #DDAA1E;
+    font-size: 20px;
+}
+
+.feedback-date {
+    color: #777;
+    font-size: 13px;
+}
+
+.feedback-category {
+    font-size: 15px;
+    margin-top: 10px;
+    color: #333;
+}
+
+.feedback-message {
+    font-size: 16px;
+    color: #444;
+    margin-top: 8px;
+}
+
+.no-feedback {
+    color: #999;
+    font-style: italic;
+}
+
+/* for chat system*/
+.chat-modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6);
+}
+
+.chat-modal-content {
+  background: #fff;
+  margin: 5% auto;
+  padding: 20px;
+  width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  border-radius: 10px;
+}
+
+.close-btn {
+  float: right;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.chat-box {
+  border: 1px solid #ddd;
+  height: 300px;
+  overflow-y: auto;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.chat-form input {
+  padding: 8px 8px;
+  width: 80%;
+}
+
+.admin-msg { 
+  text-align: left; 
+  color: black;
+  background-color: #A8F1FF;
+  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+  margin-bottom: 10px;
+  border-radius: 8px;
+  padding: 12px 12px;
+}
+.user-msg { 
+  text-align: left; 
+  color: black; 
+  background-color: #FFFA8D;
+  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+  margin-bottom: 10px;
+  border-radius: 8px;
+  padding: 12px 12px;
+}
+
+.chat-btn-wrapper {
+  position: fixed;
+  bottom: 80px;
+  right: 25px;
+}
+
+.chat-btn-icon {
+  background: #FFD93D;
+  height: 60px;
+  width: 70px;
+  border-radius: 20px;
+  opacity: 0.7;
+}
+
+.chat-icon {
+  width: 30px;
+  height: 30px;
+  vertical-align:middle;
+  color: #fff;
+  background: #FFD93D;
+}
+
+.chat-notification {
+  position: absolute;
+  top: 5px;
+  right: 10px;
+  background: red;
+  color: white;
+  font-weight: bold;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+  text-align: center;
+  line-height: 18px;
+  display: none; /* hidden by default */
+  box-shadow: 0 0 5px rgba(0,0,0,0.3);
+}
+
+/* Notification Tabs */
+.notif-tab {
+  padding: 10px 15px;
+  margin: 5px;
+  border: none;
+  background: #eee;
+  cursor: pointer;
+  border-radius: 8px;
+  font-weight: bold;
+  color: #DDAA1E;
+}
+
+.notif-tab.active {
+  background: #010A28;
+  color: white;
+}
+
+</style>
+
+</html> 

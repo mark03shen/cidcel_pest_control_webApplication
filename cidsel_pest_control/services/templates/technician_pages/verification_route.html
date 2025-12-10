@@ -1,0 +1,713 @@
+{% extends 'technician_pages/technician_dashboard.html' %}
+{% block title %}Verification Route{% endblock %}
+{% block content %}
+
+<h1 class="page-title">Job Assignments</h1>
+<p class="subtitle">See job assignments to manage</p>
+
+{% if assignments %}
+<div class="bubble-container">
+  {% for assignment in assignments %}
+  <div class="assignment-bubble" id="row-{{ assignment.appointment.id }}"
+      style="
+        {% if assignment.approval_status == 'approved' %} background-color:#CBDCEB; font-weight:bold;
+        {% elif assignment.progress_status %} background-color:#e2e3f3; font-weight:bold;
+        {% endif %}
+      "
+      {% if highlight_id == assignment.appointment.id|stringformat:"s" %}
+      data-highlight="true"
+      {% endif %}>
+
+       
+    <div class="bubble-content">
+      <p><strong>Client:</strong> {{ assignment.appointment.client_name }}</p>
+      <p><strong>Service:</strong> {{ assignment.appointment.service }}</p>
+      <p><strong>Mobile:</strong> {{ assignment.appointment.mobile }}</p>
+      <p><strong>Date:</strong> {{ assignment.appointment.date }} at {{ assignment.appointment.time }}</p>
+      <p><strong>Land Use Category:</strong> {{ assignment.appointment.land_use_category }}</p>
+    </div>
+
+
+    <div class="bubble-actions">
+      <button class="approve-btn" data-id="{{ assignment.id }}"
+              {% if assignment.approval_status == "approved" %}disabled{% endif %}>
+          {% if assignment.approval_status == "approved" %}Approved{% else %}Approve{% endif %}
+      </button>
+
+      <button class="equip-btn" data-id="{{ assignment.id }}">Recommended Equipments & Materials</button>
+
+      <!-- ✅ Category Dropdown -->
+      <select class="category-select" data-id="{{ assignment.id }}"
+              {% if assignment.approval_status == "pending" %}disabled{% endif %}>
+          <option value="">Upload photo to proceed</option>
+          {% if assignment.appointment.service == "General Pest Control" %}
+            <option value="Initial Visit" {% if assignment.progress_status == "Initial Visit" %}selected{% endif %}>Initial Visit</option>
+            <option value="Follow Up Visit" {% if assignment.progress_status == "Follow Up Visit" %}selected{% endif %}>Follow Up Visit</option>
+            <option value="Last Visit" {% if assignment.progress_status == "Last Visit" %}selected{% endif %}>Last Visit</option>
+            <option value="Completed" {% if assignment.progress_status == "Completed" %}selected{% endif %}>Completed</option>
+          {% elif assignment.appointment.service == "Termite Comprehensive" %}
+            {% if "1" in assignment.appointment.contract_period|lower %}
+              <option value="Initial Visit" {% if assignment.progress_status == "Initial Visit" %}selected{% endif %}>Initial Visit</option>
+              <option value="2nd Follow Up Visit" {% if assignment.progress_status == "2nd Follow Up Visit" %}selected{% endif %}>2nd Follow Up Visit</option>
+              <option value="Last Visit" {% if assignment.progress_status == "Last Visit" %}selected{% endif %}>Last Visit</option>
+              <option value="Completed" {% if assignment.progress_status == "Completed" %}selected{% endif %}>Completed</option>
+            {% elif "2" in assignment.appointment.contract_period|lower %}
+              <option value="Initial Visit" {% if assignment.progress_status == "Initial Visit" %}selected{% endif %}>Initial Visit</option>
+              <option value="2nd Follow Up Visit" {% if assignment.progress_status == "2nd Follow Up Visit" %}selected{% endif %}>2nd Follow Up Visit</option>
+              <option value="3rd Follow Up Visit" {% if assignment.progress_status == "3rd Follow Up Visit" %}selected{% endif %}>3rd Follow Up Visit</option>
+              <option value="4th Follow Up Visit" {% if assignment.progress_status == "4th Follow Up Visit" %}selected{% endif %}>4th Follow Up Visit</option>
+              <option value="5th Follow Up Visit" {% if assignment.progress_status == "5th Follow Up Visit" %}selected{% endif %}>5th Follow Up Visit</option>
+              <option value="Last Visit" {% if assignment.progress_status == "Last Visit" %}selected{% endif %}>Last Visit</option>
+              <option value="Completed" {% if assignment.progress_status == "Completed" %}selected{% endif %}>Completed</option>
+            {% endif %}
+          {% elif assignment.appointment.service == "Termite Spot Treatment" %}
+            <option value="Initial Visit" {% if assignment.progress_status == "Initial Visit" %}selected{% endif %}>Initial Visit</option>
+            <option value="Follow Up Visit" {% if assignment.progress_status == "Follow Up Visit" %}selected{% endif %}>Follow Up Visit</option>
+            <option value="Last Visit" {% if assignment.progress_status == "Last Visit" %}selected{% endif %}>Last Visit</option>
+            <option value="Completed" {% if assignment.progress_status == "Completed" %}selected{% endif %}>Completed</option>
+          {% endif %}
+      </select>
+
+      </div>
+
+    <div class="progress-tracker" id="progress-{{ assignment.id }}">
+      {% if assignment.appointment.service == "General Pest Control" %}
+        <div class="step" data-step="Initial Visit">
+          <span class="dot"><svg class="checkmark" viewBox="0 0 24 24"><path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/></svg>
+          </span> <p>Initial</p></div>
+        <div class="step" data-step="Follow Up Visit">
+          <span class="dot"><svg class="checkmark" viewBox="0 0 24 24"><path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/></svg>
+          </span><p>Follow Up</p></div>
+        <div class="step" data-step="Last Visit">
+          <span class="dot"><svg class="checkmark" viewBox="0 0 24 24"><path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/></svg>
+          </span><p>Last Visit</p></div>
+        <div class="step" data-step="Completed">
+          <span class="dot"><svg class="checkmark" viewBox="0 0 24 24"><path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/></svg>
+          </span><p>Completed</p></div>
+      {% elif assignment.appointment.service == "Termite Spot Treatment" %}
+        <div class="step" data-step="Initial Visit">
+          <span class="dot"><svg class="checkmark" viewBox="0 0 24 24"><path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/></svg>
+          </span><p>Initial</p></div>
+        <div class="step" data-step="Follow Up Visit">
+          <span class="dot"><svg class="checkmark" viewBox="0 0 24 24"><path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/></svg>
+          </span><p>Follow Up</p></div>
+        <div class="step" data-step="Last Visit">
+          <span class="dot"><svg class="checkmark" viewBox="0 0 24 24"><path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/></svg>
+          </span><p>Last Visit</p></div>
+        <div class="step" data-step="Completed">
+          <span class="dot"><svg class="checkmark" viewBox="0 0 24 24"><path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/></svg>
+          </span><p>Completed</p></div>
+
+      {% elif assignment.appointment.service == "Termite Comprehensive" %}
+        {% if "1" in assignment.appointment.contract_period|lower %}
+          <div class="step" data-step="Initial Visit">
+            <span class="dot"><svg class="checkmark" viewBox="0 0 24 24"><path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/></svg>
+            </span><p>Initial</p></div>
+          <div class="step" data-step="2nd Follow Up Visit">
+            <span class="dot"><svg class="checkmark" viewBox="0 0 24 24"><path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/></svg>
+            </span><p>2nd Follow Up visit</p></div>
+          <div class="step" data-step="Last Visit">
+            <span class="dot"><svg class="checkmark" viewBox="0 0 24 24"><path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/></svg>
+            </span><p>Last Visit</p></div>
+          <div class="step" data-step="Completed">
+            <span class="dot"><svg class="checkmark" viewBox="0 0 24 24"><path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/></svg>
+            </span><p>Completed</p></div>
+
+        {% elif "2" in assignment.appointment.contract_period|lower %}
+          <div class="step" data-step="Initial Visit">
+            <span class="dot"><svg class="checkmark" viewBox="0 0 24 24"><path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/></svg>
+            </span><p>Initial</p></div>
+          <div class="step" data-step="2nd Follow Up Visit">
+            <span class="dot"><svg class="checkmark" viewBox="0 0 24 24"><path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/</svg>
+            </span><p>2nd Follow Up visit</p></div>
+          <div class="step" data-step="3rd Follow Up Visit">
+            <span class="dot"><svg class="checkmark" viewBox="0 0 24 24"><path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/></svg>
+            </span><p>3rd Follow Up visit</p></div>
+          <div class="step" data-step="4th Follow Up Visit">
+            <span class="dot"><svg class="checkmark" viewBox="0 0 24 24"><path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/></svg>
+            </span><p>4th Follow Up visit</p></div>
+          <div class="step" data-step="5th Follow Up Visit">
+            <span class="dot"><svg class="checkmark" viewBox="0 0 24 24"><path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/></svg>
+            </span><p>5th Follow Up visit</p></div>
+          <div class="step" data-step="Last Visit">
+            <span class="dot"><svg class="checkmark" viewBox="0 0 24 24"><path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/></svg>
+            </span><p>Last Visit</p></div>
+          <div class="step" data-step="Completed">
+            <span class="dot"><svg class="checkmark" viewBox="0 0 24 24"><path d="M4 12l6 6 10-14" stroke-width="3" fill="none"/></svg>
+            </span><p>Completed</p></div>
+        {% endif %}
+      {% endif %}
+    </div>
+
+  </div>
+  {% endfor %}
+  
+</div>
+
+<!-- Progress Photo Modal -->
+<div id="progressModal" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <h2>Upload Progress Photo</h2>
+
+    <form id="progressUploadForm" enctype="multipart/form-data">
+      <input type="hidden" name="assignment_id" id="modal_assignment_id">
+      <input type="hidden" name="progress_status" id="modal_progress_status">
+
+      <label>Photo:</label>
+      <input type="file" name="photo" id="modal_photo" accept="image/*" required>
+
+      <label>Description:</label>
+      <textarea name="description" id="modal_description" rows="3" placeholder="Enter details..." required></textarea>
+
+      <div class="modal-btns">
+        <button type="button" id="closeModal">Cancel</button>
+        <button type="submit" id="submitProgress">Submit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Recommended Equipments & Materials Modal -->
+<div id="equipModal" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <h2>Recommended Equipments & Materials</h2>
+
+    <h3 style="margin-top:10px;">Materials</h3>
+    <ul id="materialsList"></ul>
+
+    <h3 style="margin-top:20px;">Equipment</h3>
+    <ul id="equipmentList"></ul>
+
+    <div class="modal-btns">
+      <button type="button" id="closeEquipModal">Close</button>
+    </div>
+  </div>
+</div>
+
+
+
+{% else %}
+  <p class="no-data">No assignments found!.</p>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const highlightId = "{{ highlight_id }}";
+  if (highlightId) {
+    const row = document.getElementById(`row-${highlightId}`);
+    if (row) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  //for approve buttons
+  function sendAction(button, actionUrl, status) {
+    const assignmentId = button.dataset.id;
+    fetch(actionUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-CSRFToken": "{{ csrf_token }}"
+      },
+      body: `assignment_id=${assignmentId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const row = button.closest('.assignment-bubble');
+        const approveBtn = row.querySelector(".approve-btn");
+        const select = row.querySelector(".category-select");
+
+        // Disable both buttons
+        approveBtn.disabled = true;
+
+        if (status === "approved") {
+          row.style.backgroundColor = "#d4edda";
+          approveBtn.textContent = "Approved";
+          // Enable dropdown
+          select.disabled = false;
+        }
+
+        row.style.fontWeight = "bold";
+      } else {
+        alert("Failed to update status: " + data.error);
+      }
+    });
+  }
+
+
+  document.querySelectorAll(".approve-btn").forEach(btn => {
+    btn.addEventListener("click", () => sendAction(btn, "{% url 'technician_accept_job' %}", "approved"));
+  });
+
+  // Call progress bar update on page load
+  document.querySelectorAll(".category-select").forEach(select => {
+    const assignmentId = select.dataset.id;
+    const savedStatus = select.value;
+
+    if (savedStatus) {
+      updateProgressBar(assignmentId, savedStatus);
+    }
+  });
+});
+
+// ✅ Handle category dropdown changes
+document.querySelectorAll(".category-select").forEach(select => {
+  select.addEventListener("change", () => {
+    const assignmentId = select.dataset.id;
+    const status = select.value;
+
+    if (!status) return;
+
+    fetch("{% url 'update_verification_status' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-CSRFToken": "{{ csrf_token }}"
+      },
+      body: `assignment_id=${assignmentId}&status=${encodeURIComponent(status)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+      // CALL the progress update after category change
+      updateProgressBar(assignmentId, status);
+
+      if (data.success) {
+        const row = select.closest(".assignment-bubble");
+        row.style.backgroundColor = "#CBDCEB";
+        row.style.fontWeight = "bold";
+
+        // ✅ Ensure the selected option stays after reload too
+        select.value = status;
+      } else {
+        alert("Failed to update status: " + data.error);
+      }
+    });
+  });
+});
+
+
+// Open modal when selecting a category
+document.querySelectorAll(".category-select").forEach(select => {
+  select.addEventListener("change", () => {
+    const assignmentId = select.dataset.id;
+    const status = select.value;
+
+    if (!status) return;
+
+    // Fill modal hidden fields
+    document.getElementById("modal_assignment_id").value = assignmentId;
+    document.getElementById("modal_progress_status").value = status;
+
+    // Show modal
+    document.getElementById("progressModal").style.display = "flex";
+  });
+});
+
+document.getElementById("closeModal").addEventListener("click", () => {
+  document.getElementById("progressModal").style.display = "none";
+});
+
+//Submit modal with AJAX (photo + text)
+document.getElementById("progressUploadForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+
+  const formData = new FormData(this);
+
+  fetch("{% url 'upload_progress_photo' %}", {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": "{{ csrf_token }}"
+    },
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+
+      alert("Progress updated successfully!");
+
+      document.getElementById("progressModal").style.display = "none";
+
+    } else {
+      alert("Error: " + data.error);
+    }
+  });
+});
+
+// Function to update progress bar display
+function updateProgressBar(assignmentId, currentStatus) {
+  const tracker = document.querySelector(`#progress-${assignmentId}`);
+  if (!tracker) return;
+
+  const steps = [...tracker.querySelectorAll(".step")];
+  
+  // Determine fill percentage
+  const currentIndex = steps.findIndex(step => step.dataset.step === currentStatus);
+  const totalSteps = steps.length - 1;
+  const lineFill = (currentIndex / totalSteps) * 100;
+
+  // Animate line
+  tracker.style.setProperty("--line-fill", lineFill + "%");
+  tracker.querySelector("::after");
+
+  // Activate steps
+  let reached = true;
+
+  steps.forEach((step, index) => {
+
+    if (index < currentIndex) {
+      step.classList.add("completed");
+      step.classList.remove("active");
+    } 
+    else if (index === currentIndex) {
+      step.classList.add("active");
+      step.classList.add("completed");  // so checkmark animates
+    } 
+    else {
+      step.classList.remove("completed");
+      step.classList.remove("active");
+    }
+
+  });
+
+  // Update the animated line width
+  const line = tracker.querySelector(":after");
+}
+
+
+// Open Equipments & Materials modal
+document.querySelectorAll(".equip-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.getElementById("equipModal").style.display = "flex";
+  });
+});
+
+// Close modal on close button click
+document.getElementById("closeEquipModal").addEventListener("click", () => {
+  document.getElementById("equipModal").style.display = "none";
+});
+
+// Close modal when clicking outside the modal box
+window.addEventListener("click", (event) => {
+  const modal = document.getElementById("equipModal");
+  if (event.target === modal) {
+    modal.style.display = "none";
+  }
+});
+
+document.querySelectorAll(".equip-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const assignmentId = btn.dataset.id;
+
+    fetch(`/get-recommended-items/?assignment_id=${assignmentId}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+
+        const matList = document.getElementById("materialsList");
+        const eqList = document.getElementById("equipmentList");
+
+        matList.innerHTML = "";
+        eqList.innerHTML = "";
+
+        data.materials.forEach(item => {
+          matList.innerHTML += `<li>${item}</li>`;
+        });
+
+        data.equipment.forEach(item => {
+          eqList.innerHTML += `<li>${item}</li>`;
+        });
+
+        document.getElementById("equipModal").style.display = "flex";
+      }
+    });
+  });
+});
+
+document.getElementById("closeEquipModal").addEventListener("click", () => {
+  document.getElementById("equipModal").style.display = "none";
+});
+</script>
+
+<style>
+body {
+  margin: 0;
+  padding: 0;
+  background: #f9f9fb;
+  font-family: Arial, sans-serif;
+}
+
+.page-title {
+  color: #010A28;
+  text-align: center;
+  padding: 15px;
+  font-size: 1.8em;
+}
+
+.subtitle {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 1.1em;
+  color: #555;
+}
+
+.no-data {
+  text-align: center;
+  font-size: 1.1em;
+  margin-top: 20px;
+}
+
+.bubble-container {
+  display: grid;
+  /* grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); */
+  gap: 20px;
+  padding: 20px;
+}
+
+.assignment-bubble {
+  background: #fff;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transition: transform 0.2s ease;
+}
+
+.assignment-bubble:hover {
+  transform: translateY(-5px);
+}
+
+.bubble-content p {
+  margin: 6px 0;
+  font-size: 0.95em;
+  color: #333;
+}
+
+.bubble-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+}
+
+.approve-btn {
+  flex: 0.5;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background 0.2s ease;
+}
+
+.approve-btn {
+  background-color: #1055C9;
+  color: white;
+}
+
+.approve-btn:hover:not(:disabled) {
+  background-color: #376bc5ff;
+}
+
+.approve-btn:disabled {
+  background-color: #999;
+  cursor: not-allowed;
+}
+
+.category-select {
+  flex: 0.5;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  font-size: 0.9em;
+  cursor: pointer;
+  color: white;
+  background-color: #6D94C5;
+}
+
+/* for upload modal */
+.modal-overlay {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 5000;
+}
+
+.modal-box {
+  background: white;
+  padding: 20px;
+  border-radius: 15px;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.2);
+}
+
+.modal-box h2 {
+  margin-top: 0;
+  color: #010A28;
+}
+
+.modal-box input, .modal-box textarea {
+  width: 90%;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.modal-btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+#closeModal {
+  background: #ccc;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+#submitProgress {
+  background: #6D94C5;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* Progress line background */
+.progress-tracker {
+  margin-top: 25px;
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+}
+
+/* Gray line */
+.progress-tracker::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #d8d8d8;
+  z-index: 1;
+}
+
+/* Blue animated fill line */
+.progress-tracker::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 0;
+  height: 3px;
+  background: #6D94C5;
+  width: 0%;
+  transition: width 0.4s ease;
+  z-index: 2;
+}
+
+.step {
+  text-align: center;
+  font-size: 0.95em;
+  width: 100%;
+  position: relative;
+  z-index: 3;
+}
+
+/* The dot container */
+.step .dot {
+  width: 20px;
+  height: 20px;
+  display: block;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: #cfcfcf;
+  border: 2px solid #cfcfcf;
+  position: relative;
+  transition: 0.3s ease;
+}
+
+/* Blue for completed steps */
+.step.completed .dot {
+  background: #6D94C5;
+  border-color: #6D94C5;
+}
+
+/* Active step glowing effect */
+.step.active .dot {
+  background: #6D94C5;
+  border-color: #6D94C5;
+  box-shadow: 0 0 8px rgba(16,85,201,0.6);
+}
+
+/* CHECKMARK animation */
+.checkmark {
+  width: 18px;
+  height: 18px;
+  stroke: white;
+  opacity: 0;
+  transform: scale(0);
+  transform-origin: center;
+  transition: all 0.25s ease-out;
+}
+
+.step.completed .checkmark {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.step.completed .checkmark path {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: draw-check 0.3s ease forwards;
+}
+
+@keyframes draw-check {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.step p {
+  margin-top: 6px;
+  font-size: 0.75em;
+  color: #333;
+}
+
+.progress-tracker {
+  --line-fill: 0%;
+}
+
+.progress-tracker::after {
+  width: var(--line-fill);
+}
+
+.equip-btn {
+  flex: 0.5;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.9em;
+  background-color: #6D94C5;
+  color: white;
+  transition: background 0.2s ease;
+}
+
+.equip-btn:hover {
+  background-color: #3c5c80;
+}
+
+</style>
+
+{% endblock %}

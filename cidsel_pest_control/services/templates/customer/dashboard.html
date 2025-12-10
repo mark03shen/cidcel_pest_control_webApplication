@@ -1,0 +1,1321 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Newsfeed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<div class="header">
+    <div class="header-container">
+        <div class="logo-text">
+            <img id="logo" src="{% static 'cidsel_logo.png' %}" alt="CIDSEL Logo">
+            <div class="text-group">
+                <h1>
+                    <span class="brand">CIDSEL</span>
+                    <span class="service">Pest Control Services</span>
+                </h1>
+                <p class="subtitle">Professional pest control for residential and commercial properties</p>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+            <a href="{% url 'book_appointment' %}" class="appointment-button">Book Appointment</a>
+
+            {% if user.is_authenticated %}
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-button">Logout</button>
+                </form>
+            {% endif %}
+
+            {% if not user.is_authenticated %}
+                <div class="button-container dropdown">
+                    <button class="dropdown-button">Sign In ▼</button>
+                    <div class="dropdown-content">
+                        <a href="{% url 'login' %}">Sign In</a>
+                        <a href="javascript:void(0);" onclick="openLoginOptions()">Admin Login</a>
+                    </div>
+                </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+        <span class="close" onclick="closeLoginOptions()">&times;</span>
+        <h3>Select Login Type</h3>
+        <a href="{% url 'admin_login' %}">
+            <button class="modal-button admin">Admin Login</button>
+        </a>
+        <a href="{% url 'technician_login' %}">
+            <button class="modal-button technician">Technician Login</button>
+        </a>
+        </div>
+    </div>
+
+    <div class="nav-bar">
+        <a href="{% url 'dashboard' %}">Home</a>
+        <a href="{% url 'services' %}">Services</a>
+        <a href="{% url 'faqs' %}">FAQs</a>
+
+        {% if user.is_authenticated %}
+            <a href="{% url 'feedback' %}">Feedback</a>
+        {% else %}
+            <div class="tooltip-wrapper">
+                <a href="{% url 'login' %}" class="tooltip-link">Feedback</a>
+                <span class="tooltip-text">Need to Sign In</span>
+            </div>
+        {% endif %}
+
+        {% if user.is_authenticated %}
+            <a href="{% url 'profile' %}">Profile</a>
+        {% else %}
+            <div class="tooltip-wrapper">
+                <a href="{% url 'login' %}" class="tooltip-link">Profile</a>
+                <span class="tooltip-text">Need to Sign In</span>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+    <!-- Promotional Video Background -->
+    <div class="video-background">
+        <video autoplay muted loop playsinline id="promoVideo">
+            <source src="{% static 'videos/promotevid.mp4' %}" type="video/mp4">
+        </video>
+
+        <!-- Left Title -->
+        <div class="video-text left">
+            <h1>Guaranteed Pest Control, Zero Compromises</h1>
+            <p>Safe • Reliable • Professional Service</p>
+            <p>Protecting your home and business from unwanted pests.</p>
+        </div>
+
+        <!-- Right Subtitle -->
+        <div class="video-text right">
+            <p>The principles of Integrated Pest Management which prolong the effectiveness of the term pest solution</p>
+            <p>We offer value-added services with free estimates and consultations</p>
+            <p>We only utilize chemicals that are:
+                <li>Food and Drug Authority Registered (FDA)</li>
+                <li>Environmentally friendly</li>
+                <li>Safe with the non-target organism</li>
+            </p>   
+            <p>We have a professional solution for:</p>
+                <li>General Pest Control</li>
+                <li>Termite Spot treatment</li>
+                <li>Termite Comprehensive</li>
+        </div>
+    </div>
+    
+
+    <hr class="section-divider">
+
+    <div class="gallery-section">
+        <div class="gallery-controls">
+            <button class="filter-button active" onclick="filterGallery('all')">All</button>
+            <button class="filter-button" onclick="filterGallery('general')">General Pest Control</button>
+            <button class="filter-button" onclick="filterGallery('termite_comprehensive')">Termite Comprehensive</button>
+            <button class="filter-button" onclick="filterGallery('termite_spot')">Termite Spot Treatment</button>
+        </div>
+
+        <div class="gallery">
+            {% for photo in photos %}
+                <div class="gallery-item" data-category="{{ photo.category }}">
+                    <img src="{{ photo.photo.url }}" alt="Uploaded Photo" onclick="openModal('{{ photo.photo.url }}')">
+                    <p>{{ photo.get_category_display }}</p>
+                </div>
+            {% empty %}
+                <p>No photos available.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Gallery Modal -->
+    <div id="imageModal" class="modal_img">
+        <span class="switch" onclick="closeModal()">&times;</span>
+        <img class="modal-item" id="modalImage">
+        <div class="description" id="modalCaption"></div>
+    </div>
+
+    <hr class="section-divider">
+
+    <div class="gallery-section">
+        <div class="carousel-wrapper">
+            <div class="carousel">
+                <div class="carousel-images">
+                    <img src="{% static 'certi1CIDSEL.png' %}" alt="image 1">
+                    <img src="{% static 'certi2CIDSEL.png' %}" alt="image 2">
+                    <img src="{% static 'certi3CIDSEL.png' %}" alt="image 3">
+                    <img src="{% static 'certi4CIDSEL.png' %}" alt="image 4">
+                </div>
+                <button class="carousel-button prev">&#10094;</button>
+                <button class="carousel-button next">&#10095;</button>
+            </div>
+        </div>
+    </div>
+
+    <hr class="section-divider">
+
+    <div class="gallery-section">
+        <h2 class="feedback-title">Customer Reviews</h2>
+        <div class="feedback-list">
+            {% for fb in feedbacks %}
+                <div class="feedback-card">
+                    <div class="feedback-header">
+                        <strong class="feedback-user">{{ fb.user.username }}</strong>
+                        <span class="feedback-stars">
+                            {% for i in "12345"|make_list %}
+                                {% if forloop.counter <= fb.rating %}
+                                    ★
+                                {% else %}
+                                    ☆
+                                {% endif %}
+                            {% endfor %}
+                        </span>
+                    </div>
+                    <small class="feedback-date">{{ fb.submitted_at|date:"M d, Y - H:i" }}</small>
+                    <p class="feedback-category"><strong>Category:</strong> {{ fb.category }}</p>
+                    <p class="feedback-message">{{ fb.message }}</p>
+                </div>
+            {% empty %}
+                <p class="no-feedback">No feedback yet. Be the first to leave one!</p>
+            {% endfor %}
+        </div>
+    </div>
+
+{% if user.is_authenticated %}
+<div class="chat-btn-wrapper">
+  <span id="chatNotification" class="chat-notification">!</span>
+  <button id="chatBtn" class="chat-button" onclick="openChat()">💬 Message Admin</button>
+</div>
+{% else %}
+<div class="chat-btn-wrapper">
+  <button id="chatBtn" class="chat-button disabled" title="Login to chat" disabled>💬 Login to Chat</button>
+</div>
+{% endif %}
+
+<!-- Chat Modal -->
+<div id="chatModal" class="chat-modal">
+  <div class="chat-modal-content">
+    <span class="close-chat" onclick="closeChat()">&times;</span>
+    <h2>Chat with Admin</h2>
+    <div id="chatMessages" class="chat-messages"></div>
+    <form id="chatForm">
+      <input type="text" id="chatInput" placeholder="Type your message..." required>
+      <button type="submit">Send</button>
+    </form>
+  </div>
+</div> 
+
+<button id="backToTop" title="Go to top">🢁</button>
+
+</body>
+
+<script>
+    let currentIndex = 0;
+    const images = document.querySelectorAll('.carousel-images img');
+    const totalImages = images.length;
+
+    function updateCarousel() {
+        // Hide all images and then display the current image
+        images.forEach((img, index) => {
+            img.style.display = index === currentIndex ? 'block' : 'none';
+        });
+    }
+
+    document.querySelector('.next').addEventListener('click', () => {
+        currentIndex = (currentIndex + 1) % totalImages;
+        updateCarousel();
+    });
+
+    document.querySelector('.prev').addEventListener('click', () => {
+        currentIndex = (currentIndex - 1 + totalImages) % totalImages;
+        updateCarousel();
+    });
+
+    // Autoplay every 5 seconds
+    setInterval(() => {
+        currentIndex = (currentIndex + 1) % totalImages;
+        updateCarousel();
+    }, 3000);
+
+    // Initialize the carousel display
+    updateCarousel();
+
+
+    // this is for adminTechnician modal
+    setTimeout(() => {
+        document.body.classList.add("loaded");
+    }, 3000);
+
+    function openLoginOptions() {
+        document.getElementById("loginModal").style.display = "block";
+    }
+
+    function closeLoginOptions() {
+        document.getElementById("loginModal").style.display = "none";
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById("loginModal");
+        if (event.target === modal) {
+        modal.style.display = "none";
+        }
+    }
+
+    // this is for filtering gallery
+    function filterGallery(category) {
+        const items = document.querySelectorAll('.gallery-item');
+        
+        let count = 0;
+        items.forEach(item => {
+            if (category === 'all') {
+                if (count < 20) {
+                    item.style.display = 'block';
+                    count++;
+                } else {
+                    item.style.display = 'none';
+                }
+            } else if (item.dataset.category === category) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        // Highlight active button
+        document.querySelectorAll('.filter-button').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`.filter-button[onclick="filterGallery('${category}')"]`).classList.add('active');
+    }
+
+    //--- for gallery modal
+    function openModal(imgSrc) {
+        const modal = document.getElementById("imageModal");
+        const modalImg = document.getElementById("modalImage");
+
+        modal.style.display = "block";
+        modalImg.src = imgSrc;
+
+        // Optional: if you want caption, use alt text
+        document.getElementById("modalCaption").innerText = imgSrc.split('/').pop();
+    }
+
+    function closeModal() {
+        document.getElementById("imageModal").style.display = "none";
+    }
+
+    // Close modal if clicking outside image
+    window.onclick = function(event) {
+        const modal = document.getElementById("imageModal");
+        if (event.target === modal) {
+            closeModal();
+        }
+    }
+
+    // Optional: Right-click → open in new tab
+    document.addEventListener("contextmenu", function(e) {
+        if (e.target.tagName === "IMG" && e.target.closest(".gallery-item")) {
+            window.open(e.target.src, "_blank");
+            e.preventDefault();
+        }
+    });
+
+    // to fix nav bar on top when scrolling
+    window.addEventListener("scroll", function() {
+        const nav = document.querySelector(".nav-bar");
+        const header = document.querySelector(".header");
+
+        if (window.scrollY >= header.offsetHeight) {
+            nav.classList.add("fixed-nav");
+        } else {
+            nav.classList.remove("fixed-nav");
+        }
+    });
+
+// Back to Top button functionality
+const backToTop = document.getElementById("backToTop");
+
+window.onscroll = function () {
+  if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
+    backToTop.style.display = "block";
+  } else {
+    backToTop.style.display = "none";
+  }
+};
+
+backToTop.onclick = function () {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+// Chat system
+function openChat() {
+  document.getElementById("chatModal").style.display = "block";
+  loadMessages();
+}
+
+function closeChat() {
+  document.getElementById("chatModal").style.display = "none";
+}
+
+async function loadMessages() {
+  const res = await fetch("{% url 'load_messages' %}");
+  const data = await res.json();
+  const container = document.getElementById("chatMessages");
+  container.innerHTML = "";
+  data.messages.forEach(m => {
+    const msgDiv = document.createElement("div");
+    msgDiv.className = m.is_admin ? "admin-msg" : "user-msg";
+    msgDiv.textContent = `${m.sender}: ${m.message}`;
+    container.appendChild(msgDiv);
+  });
+  container.scrollTop = container.scrollHeight;
+}
+
+// Refresh messages every 5s
+setInterval(loadMessages, 5000);
+
+document.getElementById("chatForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById("chatInput").value;
+  await fetch("{% url 'send_message' %}", {
+    method: "POST",
+    headers: { "X-CSRFToken": "{{ csrf_token }}" },
+    body: new URLSearchParams({ message: msg })
+  });
+  document.getElementById("chatInput").value = "";
+  loadMessages();
+});
+
+// Close modal when clicking outside
+window.addEventListener("click", function (event) {
+  const modal = document.getElementById("chatModal");
+  if (event.target === modal) {
+    closeChat();
+  }
+});
+
+//chat notif
+let lastMessageCount = 0;
+const chatBadge = document.getElementById("chatNotification");
+
+async function checkNewMessages() {
+  const res = await fetch("{% url 'load_messages' %}");
+  const data = await res.json();
+  const messages = data.messages;
+
+  // Count admin messages
+  const adminMessages = messages.filter(m => m.is_admin);
+
+  // If new admin message arrived, show "!"
+  if (adminMessages.length > lastMessageCount && document.getElementById("chatModal").style.display !== "block") {
+    chatBadge.style.display = "block";
+  }
+
+  lastMessageCount = adminMessages.length;
+}
+
+setInterval(checkNewMessages, 5000);
+
+// Hide badge when chat is opened
+function openChat() {
+  document.getElementById("chatModal").style.display = "block";
+  chatBadge.style.display = "none";
+  loadMessages();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const chatModal = document.getElementById("chatModal");
+  const chatBadge = document.getElementById("chatNotification");
+  let lastMessageCount = 0;
+
+  async function checkNewMessages() {
+    try {
+      const res = await fetch("{% url 'load_messages' %}");
+      const data = await res.json();
+      const adminMessages = data.messages.filter(m => m.is_admin);
+
+      // Show badge only if modal is closed and new message appears
+      if (adminMessages.length > lastMessageCount && chatModal.style.display !== "block") {
+        chatBadge.style.display = "block";
+      }
+      lastMessageCount = adminMessages.length;
+    } catch (err) {
+      console.error("Message check failed:", err);
+    }
+  }
+
+  setInterval(checkNewMessages, 2000);
+
+  // Wrap the existing openChat to hide badge when chat opens
+  window.openChat = function() {
+    chatModal.style.display = "block";
+    chatBadge.style.display = "none";
+    loadMessages();
+  };
+
+  window.closeChat = function() {
+    chatModal.style.display = "none";
+  };
+
+  // Close modal on outside click
+  window.addEventListener("click", (event) => {
+    if (event.target === chatModal) {
+      closeChat();
+    }
+  });
+});
+
+</script>
+
+<footer class="site-footer">
+  <div class="footer-container">
+    <!-- Quick Contact -->
+    <div class="footer-section">
+      <h2>Quick Contact</h2>
+      <p>Email: <a href="mailto:cidselpestcontrol@gmail.com">cidselpestcontrol@gmail.com</a></p>
+      <p><strong>Phone</strong></p>
+      <ul>
+        <li>0948-285-7626</li>
+        <li>0939-135-7361</li>
+        <li>0998-576-4850</li>
+      </ul>
+    </div>
+
+    <!-- Location -->
+    <div class="footer-section">
+      <h2>Our Location</h2>
+      <p>
+        Purok 7, Sampaloc Santo Cristo, <br>
+        Sariaya, Philippines, 4322
+      </p>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <p>&copy; {{ now|date:"Y" }} CIDSEL Pest Control Services. All Rights Reserved.</p>
+  </div>
+</footer>
+
+
+<style>
+/* Promotional Video Background */
+/* 🔹 Video Background */
+.video-background {
+    position: relative;
+    width: 100%;
+    height: 75vh;
+    overflow: hidden;
+}
+
+.video-background video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* 🔹 Text Overlay Base */
+.video-text {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    color: white;
+    text-shadow: 0 0 10px black;
+    width: 45%;
+}
+
+/* Left Text */
+.video-text.left {
+    left: 5%;
+}
+
+/* Right Text */
+.video-text.right {
+    right: 5%;
+    text-align: center;
+}
+
+.video-text h1,
+.video-text h2 {
+    font-size: 45px;
+    margin: 0;
+    font-weight: bold;
+    font-family: "Times New Roman", Times, serif;
+}
+
+.video-text p {
+    font-size: 20px;
+    margin-top: 5px;
+    font-family: Arial, Helvetica, sans-serif;
+}
+    
+
+/* Responsive adjustment */
+@media (max-width: 768px) {
+  .video-background {
+    height: 40vh;
+  }
+
+  .video-text {
+    width: 90%;
+    left: 5%;
+    right: 5%;
+    text-align: center !important;
+  }
+
+  .video-text h1,
+  .video-text h2 {
+    font-size: 28px;
+  }
+
+  .video-text p {
+    font-size: 16px;
+  }
+}
+
+.gallery-section {
+    background: #e7fafcff;
+    padding: 10px;
+}
+
+body {
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #e7fafcff;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+.header {
+    background-color: #010A28;
+    color: white;
+    padding: 10px 0;
+    position: relative;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+}
+
+.header-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+}
+
+.logo-text {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+#logo {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+}
+
+.text-group {
+    text-align: left;
+}
+
+.brand {
+    color: white;
+    font-weight: bold;
+    font-size: 22px;
+}
+
+.service {
+    color: #DDAA1E;
+    font-weight: bold;
+    font-size: 22px;
+}
+
+.subtitle {
+    color: #ccc;
+    margin-top: 4px;
+    font-size: 14px;
+}
+
+.logout-button,
+.appointment-button {
+    background-color: #DDAA1E;
+    color: #010A28;
+    font-weight: bold;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 5px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.logout-button:hover,
+.appointment-button:hover {
+    background-color: #c2941a;
+}
+
+.nav-bar {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    padding: 10px;
+    flex-wrap: wrap;
+}
+
+.fixed-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #010A28;
+    z-index: 999;
+}
+
+
+.nav-bar a {
+    text-decoration: none;
+    color: #f5f5f5;
+    font-weight: bold;
+    padding: 5px 22px;
+    border-radius: 5px;
+    transition: background 0.2s;
+}
+
+.nav-bar a.active,
+.nav-bar a:hover {
+    background-color: #DDAA1E;
+    color: #fff;
+}
+
+.tooltip-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip-text {
+    visibility: hidden;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 4px;
+    padding: 5px 8px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%; /* position above the link */
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 1s;
+    white-space: nowrap;
+}
+
+.tooltip-wrapper:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+.tooltip-link {
+    text-decoration: none;
+    color: #f5f5f5;
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 5px;
+    transition: background 0.2s;
+}
+
+.tooltip-link:hover {
+    background-color: #DDAA1E;
+    color: #fff;
+}
+
+
+.content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    padding-top: 150px;
+    background: white;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+    .header-container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .logo-text {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        width: 100%;
+    }
+
+    .text-group {
+        text-align: center;
+    }
+
+    .brand, .service {
+        font-size: 20px;
+    }
+
+    .subtitle {
+        font-size: 12px;
+    }
+
+    .logout-button,
+    .appointment-button {
+        width: 100%;
+        text-align: center;
+    }
+
+    .nav-bar {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .nav-bar a {
+        width: 100%;
+        max-width: 200px;
+        text-align: center;
+    }
+}
+
+
+/* for main content */
+
+.carousel-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.carousel {
+    max-width: 90vw;
+    max-height: 80vh;
+    width: 1300;
+    height: 600px;
+    overflow: hidden;
+    position: relative;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.carousel-images {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.carousel-images img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: none; /* Initially hide all images */
+    border-radius: 10px;
+}
+
+.carousel-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    font-size: 30px;
+    padding: 10px;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.prev {
+    left: 10px;
+}
+
+.next {
+    right: 10px;
+}
+
+.carousel-button:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+@media (max-width: 768px) {
+    .carousel {
+        width: 90vw;
+        height: 300px;
+    }
+}
+
+@media (max-width: 480px) {
+    .carousel {
+        height: 250px;
+    }
+
+    .carousel-button {
+        font-size: 20px;
+        padding: 8px;
+    }
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 20% auto;
+    padding: 20px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 350px;
+    text-align: center;
+    position: relative;
+    border: 2px solid #DDAA1E;
+}
+
+.close {
+    color: #aaa;
+    position: absolute;
+    right: 15px;
+    top: 10px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: black;
+}
+
+.modal-button {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 10px;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.modal-button.admin {
+    background-color: #010A28;
+    color: white;
+}
+
+.modal-button.technician {
+    background-color: #DDAA1E;
+    color: #010A28;
+}
+
+.modal-button:hover {
+    opacity: 0.85;
+}
+
+/* Dropdown styles */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-button {
+    background-color: #010A28;
+    color: #fff;
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.dropdown-button:hover {
+    background-color: #DDAA1E;
+    color: #010A28;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+    z-index: 1001;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+.dropdown-content a {
+    color: #010A28;
+    padding: 10px 15px;
+    text-decoration: none;
+    display: block;
+    font-weight: bold;
+}
+
+.dropdown-content a:hover {
+    background-color: #DDAA1E;
+    color: white;
+}
+
+/* Show dropdown on hover */
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+/* this is for feedback content */
+.section-divider {
+    margin-top: 40px;
+    margin-bottom: 20px;
+    border: none;
+    border-top: 2px solid #DDAA1E;
+}
+
+.feedback-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #010A28;
+    margin-bottom: 20px;
+}
+
+.feedback-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.feedback-card {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-left: 5px solid #DDAA1E;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.feedback-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.feedback-user {
+    font-weight: bold;
+    color: #010A28;
+}
+
+.feedback-stars {
+    color: #DDAA1E;
+    font-size: 20px;
+}
+
+.feedback-date {
+    color: #777;
+    font-size: 13px;
+}
+
+.feedback-category {
+    font-size: 15px;
+    margin-top: 10px;
+    color: #333;
+}
+
+.feedback-message {
+    font-size: 16px;
+    color: #444;
+    margin-top: 8px;
+}
+
+.no-feedback {
+    color: #999;
+    font-style: italic;
+}
+
+/*---- this id for gallery -----*/
+.gallery-controls {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.filter-button {
+    padding: 10px 15px;
+    margin: 5px;
+    border: none;
+    background-color: #ddd;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.filter-button:hover,
+.filter-button.active {
+    background-color: #007bff;
+    color: white;
+}
+
+.gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+    padding: 20px;
+}
+
+.gallery img {
+    width: 100%;
+    height: 200px;          /* keep fixed height */
+    object-fit: contain;    /* show full image without cropping */
+    border-radius: 10px;
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    background: #fff;       /* background fills empty space */
+    padding: 5px;           /* optional spacing */
+}
+
+
+.gallery img:hover {
+    transform: scale(1.05);
+}
+
+/*for Gallery function*/
+/* The Modal (background) */
+.modal_img {
+    display: none; 
+    position: fixed;
+    z-index: 9999;
+    padding-top: 80px;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto; 
+    background-color: rgba(0,0,0,0.9);
+}
+
+/* Modal Content (image) */
+.modal-item {
+    margin: auto;
+    display: block;
+    max-width: 90%;
+    max-height: 80vh;
+    border-radius: 10px;
+}
+
+/* Caption text */
+.description {
+    text-align: center;
+    color: #ccc;
+    padding: 10px;
+    font-size: 14px;
+}
+
+/* The Close Button */
+.switch {
+    position: absolute;
+    top: 40px;
+    right: 60px;
+    color: #fff;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.switch:hover {
+    color: #bbb;
+}
+
+
+/*FOOTER*/
+.site-footer {
+    background-color: #010A28;
+    color: white;
+    padding: 40px 20px 20px;
+    margin-top: 50px;
+}
+
+.footer-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.footer-section {
+    flex: 1;
+    min-width: 250px;
+}
+
+.footer-section h2 {
+    color: #DDAA1E;
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+.footer-section p,
+.footer-section ul {
+    margin: 5px 0;
+    font-size: 15px;
+}
+
+.footer-section ul {
+    list-style: none;
+    padding: 0;
+}
+
+.footer-section ul li {
+    margin: 3px 0;
+}
+
+.footer-section a {
+    color: #DDAA1E;
+    text-decoration: none;
+}
+
+.footer-section a:hover {
+    text-decoration: underline;
+}
+
+.footer-bottom {
+    text-align: center;
+    border-top: 1px solid #444;
+    margin-top: 30px;
+    padding-top: 15px;
+    font-size: 14px;
+    color: #bbb;
+}
+
+/* Back to Top Button */
+#backToTop {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 5000; /* above all content */
+  background-color: #010A28;
+  color: white;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  opacity: 0.5; /* 50% transparent */
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#backToTop:hover {
+  opacity: 0.9;
+  transform: scale(1.1);
+}
+
+/* for chat system*/
+.chat-button {
+  position: fixed;
+  bottom: 75px;
+  right: 20px;
+  background: #DDAA1E;
+  color: #010A28;
+  padding: 16px 20px;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  font-weight: bold;
+  opacity: 80%;
+}
+.chat-button.disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 80%;
+}
+
+.chat-modal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+}
+.chat-modal-content {
+  background: #fff;
+  margin: 10% auto;
+  padding: 20px;
+  max-width: 400px;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+}
+.chat-messages {
+  height: 300px;
+  overflow-y: auto;
+  background: #f9f9f9;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+.user-msg {
+  text-align: right;
+  background: #DDAA1E;
+  color: white;
+  margin: 5px;
+  padding: 8px 12px;
+  border-radius: 10px 10px 0 10px;
+}
+.admin-msg {
+  text-align: left;
+  background: #eee;
+  margin: 5px;
+  padding: 8px 12px;
+  border-radius: 10px 10px 10px 0;
+}
+
+.chat-btn-wrapper {
+  position: fixed;
+  bottom: 145px;
+  right: 20px;
+}
+
+.chat-notification {
+  position: absolute;
+  top: 5px;
+  right: 10px;
+  background: red;
+  color: white;
+  font-weight: bold;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+  text-align: center;
+  line-height: 18px;
+  display: none; /* hidden by default */
+  box-shadow: 0 0 5px rgba(0,0,0,0.3);
+}
+
+</style>
+</html>

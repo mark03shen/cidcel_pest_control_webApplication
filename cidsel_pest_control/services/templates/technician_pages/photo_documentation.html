@@ -1,0 +1,203 @@
+{% extends 'technician_pages/technician_dashboard.html' %}
+{% load static %}
+{% block title %}Photo Documentation{% endblock %}
+{% block content %}
+
+<div class="photo-container">
+    <h2>📸 Photo Documentation</h2>
+    <p>Upload and manage your documentation photos for each job.</p>
+
+    <!-- Upload Form -->
+    <form method="post" enctype="multipart/form-data" class="upload-form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">⬆ Upload Photo</button>
+    </form>
+
+    <!-- Display Uploaded Photos -->
+    <h3 style="margin-bottom: 15px; color: #2c3e50;">Your Uploaded Photos</h3>
+    {% if photos %}
+        <div class="photo-grid">
+            {% for photo in photos %}
+            <div class="photo-card">
+                <img src="{{ photo.image.url }}" alt="Photo" onclick="openModal('{{ photo.image.url }}')">
+                <p>{{ photo.description }}</p>
+                <small>📅 {{ photo.created_at|date:"M d, Y H:i" }}</small>
+
+                <!-- Delete Form -->
+                <form method="post" action="{% url 'delete_photo' photo.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="delete-btn">🗑 Remove</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p style="color: #888;">No photos uploaded yet.</p>
+    {% endif %}
+</div>
+
+<!-- Modal -->
+<div id="photoModal" class="modal" onclick="closeModal()">
+    <span class="modal-close" onclick="closeModal()">&times;</span>
+    <img class="modal-content" id="modalImage">
+</div>
+
+<script>
+function openModal(src) {
+    document.getElementById("photoModal").style.display = "flex";
+    document.getElementById("modalImage").src = src;
+}
+
+function closeModal() {
+    document.getElementById("photoModal").style.display = "none";
+}
+</script>
+
+<style>
+.photo-container {
+    max-width: 900px;
+    margin: auto;
+    padding: 30px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.photo-container h2 {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.photo-container p {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.upload-form {
+    margin-bottom: 25px;
+    padding: 15px;
+    border: 2px dashed #aaa;
+    border-radius: 10px;
+    background: #fafafa;
+    text-align: center;
+    transition: background 0.3s ease;
+}
+
+.upload-form:hover {
+    background: #f0f8ff;
+}
+
+.upload-form button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    background: #010A28;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease;
+    margin-top: 10px;
+}
+
+.upload-form button:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+}
+
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+}
+
+.photo-card {
+    border: 1px solid #eee;
+    padding: 12px;
+    border-radius: 10px;
+    background: #fdfdfd;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+}
+
+.photo-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+}
+
+.photo-card img {
+    max-width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+.photo-card p {
+    font-size: 0.9rem;
+    color: #444;
+    margin-bottom: 6px;
+}
+
+.photo-card small {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.delete-btn {
+    display: inline-block;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    color: white;
+    background: #e74c3c;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.3s ease;
+}
+
+.delete-btn:hover {
+    background: #c0392b;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background: rgba(0,0,0,0.8);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.modal-close {
+    position: absolute;
+    top: 20px;
+    right: 35px;
+    font-size: 2rem;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+}
+</style>
+{% endblock %}

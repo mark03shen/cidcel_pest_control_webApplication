@@ -1,0 +1,613 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Book Appointment</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+
+</head>
+<body>
+
+<div class="header">
+  <h1>Request Professional Pest Control Today!</h1>
+  <p>Scheduling your pest control service has never been easier. Simply fill out the form below and let our professionals handle the rest.</p>
+</div>
+
+
+<div class="container">
+  <form id="appointmentForm" method="POST" action="{% url 'create_appointment' %}">
+    {% csrf_token %}
+
+    <button type="button" onclick="window.location.href='{% url 'customer_dashboard' %}'" class="autofill-btn">
+      back to home
+    </button>
+    <button type="button" class="autofill-btn" onclick="autoFillRecentAppointment()">
+      Auto-fill Recent Appointment
+    </button>
+
+    <!-- Customer Info -->
+    <div class="bubble-field">
+      <label>Client Name</label>
+      <input type="text" name="client_name" required>
+    </div>
+    
+    <div class="bubble-field">
+      <label>Client Address</label>
+      <input type="text" name="client_address" required>
+    </div>
+
+    <div class="bubble-field">
+      <label>Land Use Category</label>
+      <select name="land_use_category" required>
+        <option value="">-- Select Category --</option>
+        <option value="Industrial">Industrial</option>
+        <option value="Residential">Residential</option>
+        <option value="Institutional">Institutional</option>
+        <option value="Commercial">Commercial</option>
+      </select>
+    </div>
+
+    <div class="bubble-field">
+      <label>Municipality</label>
+      <input type="text" name="municipality" value="Sariaya" readonly>
+    </div>
+
+    <div class="bubble-field">
+      <label>Barangay</label>
+      <select name="barangay" required>
+        <option value="Barangay I ">Barangay I </option>
+        <option value="Barangay II">Barangay II</option>
+        <option value="Barangay III">Barangay III</option>
+        <option value="Barangay IV">Barangay IV</option>
+        <option value="Barangay V">Barangay V</option>
+        <option value="Barangay VI">Barangay VI</option>
+        <option value="Antipolo">Antipolo</option>
+        <option value="Balubal">Balubal</option>
+        <option value="Bignay 1">Bignay 1</option>
+        <option value="Bignay 2">Bignay 2</option>
+        <option value="Bucal">Bucal</option>
+        <option value="Canda">Canda</option>
+        <option value="Castañas">Castañas</option>
+        <option value="Concepcion Banahaw">Concepcion Banahaw</option>
+        <option value="Concepcion No. 1">Concepcion No. 1</option>
+        <option value="Concepcion Palasan">Concepcion Palasan</option>
+        <option value="Concepcion Pinagbakuran">Concepcion Pinagbakuran</option>
+        <option value="Gibanga">Gibanga</option>
+        <option value="Guisguis-San Roque">Guisguis-San Roque</option>
+        <option value="Guisguis-Talon">Guisguis-Talon</option>
+        <option value="Janagdong 1">Janagdong 1</option>
+        <option value="Janagdong 2">Janagdong 2</option>
+        <option value="Limbon">Limbon</option>
+        <option value="Lutucan 1">Lutucan 1</option>
+        <option value="Lutucan Bata">Lutucan Bata</option>
+        <option value="Lutucan Malabag">Lutucan Malabag</option>
+        <option value="Mamala I">Mamala I</option>
+        <option value="Mamala II">Mamala II</option>
+        <option value="Manggalang 1">Manggalang 1</option>
+        <option value="Manggalang Tulo-tulo">Manggalang Tulo-tulo</option>
+        <option value="Manggalang-Bantilan">Manggalang-Bantilan</option>
+        <option value="Manggalang-Kiling">Manggalang-Kiling</option>
+        <option value="Montecillo">Montecillo</option>
+        <option value="Morong">Morong</option>
+        <option value="Pili">Pili</option>
+        <option value="Sampaloc 1">Sampaloc 1</option>
+        <option value="Sampaloc 2">Sampaloc 2</option>
+        <option value="Sampaloc Bogon">Sampaloc Bogon</option>
+        <option value="Sampaloc Santo Cristo">Sampaloc Santo Cristo</option>
+        <option value="Talaan Aplaya">Talaan Aplaya</option>
+        <option value="Talaanpantoc">Talaanpantoc</option>
+        <option value="Tumbaga 1">Tumbaga 1</option>
+        <option value="Tumbaga 2">Tumbaga 2</option>
+      </select>
+    </div>
+
+    <div class="bubble-field">
+      <label>Street</label>
+      <input type="text" name="street">
+    </div>
+
+    <div class="bubble-field">
+      <label>House or Building No.</label>
+      <input type="text" name="house_number">
+    </div>
+
+    <div class="bubble-field">
+      <label>Mobile Number</label>
+      <input type="text" name="mobile" required>
+    </div>
+
+    <div class="bubble-field">
+      <label>Email Address</label>
+      <input type="email" name="email" value="{{ appointment.email|default_if_none:'' }}" required>
+    </div>
+
+      <!-- Job Location -->
+    <div class="bubble-field1">
+      <label>Job Location</label>
+      <input type="text" name="job_location" id="job_location"
+      placeholder="Click on the map to select location" 
+      placeholder="Location details will appear here" required>
+      <div id="map" style="height: 400px;"></div>
+      <br>
+    </div>
+
+      <!-- Service Details -->
+    <div class="bubble-field">
+      <label>Total Area Covered (sqm)</label>
+      <input type="number" name="total_area" required>
+    </div>
+
+    <div class="bubble-field">
+      <label>Select Services</label>
+      <select name="service" id="serviceSelect" required>
+        <option value="">-- Select Service --</option>
+        <option value="General Pest Control">General Pest Control</option>
+        <option value="Termite Spot Treatment">Termite Spot Treatment</option>
+        <option value="Termite Comprehensive">Termite Comprehensive</option>
+      </select>
+    </div>
+
+    <div class="bubble-field">
+      <label>Contract Period</label>
+      <select name="contract_period" id="contract_period" required>
+        <option value="">Please select a service first</option>
+      </select>
+    </div>
+
+    <div class="bubble-field">
+      <label>Estimated Price</label>
+      <input type="text" id="estimated_price" name="estimated_price" required style="font-weight:bold; color:#155724;">
+      <span id="priceDisplay"></span>
+    </div>
+
+    <div class="bubble-field">
+      <label>Choose Date</label>
+      <input type="date" name="date" id="appointment_date" required>
+    </div>
+
+    <div class="bubble-field">
+      <label>Choose Time</label>
+      <select name="time" required>
+        <option value="07:00">7 AM</option>
+        <option value="08:00">8 AM</option>
+        <option value="09:00">9 AM</option>
+        <option value="10:00">10 AM</option>
+        <option value="11:00">11 AM</option>
+        <option value="13:00">1 PM</option>
+        <option value="14:00">2 PM</option>
+        <option value="15:00">3 PM</option>
+        <option value="16:00">4 PM</option>
+      </select>
+    </div>
+
+      <!-- Payment Method -->
+    <div class="bubble-field">
+      <label>Payment Method</label>
+      <select name="payment_method" required>
+        <option value="Bank Transfer">Bank Transfer</option>
+        <option value="GCash">GCash</option>
+        <option value="Cash">Cash</option>
+      </select>
+    </div>
+    
+
+    <div style="text-align: center;">
+      <a href="{% url 'cancel_booking' %}" class="cancel-button" style="background-color: #010A28; padding: 12px 24px;">Cancel</a>
+      <button type="button" onclick="openReviewModal()" style="background-color: #010A28;">Review Appointment</button>
+    </div>
+
+
+  </form>
+
+</div>
+
+<!-- Review Modal -->
+<div id="reviewModal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
+  <div style="background-color: #fff; margin: 10% auto; padding: 20px; border-radius: 8px; width: 80%; max-width: 600px;">
+    <h2>Review Your Appointment</h2>
+    <div id="reviewContent"></div>
+    <div style="text-align: right; margin-top: 20px;">
+      <button onclick="closeReviewModal()" style="margin-right: 10px;">Edit</button>
+      <button type="submit" form="appointmentForm">Submit</button>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- Scripts -->
+<script>
+// Leaflet map setup
+var map = L.map('map').setView([13.9534, 121.6190], 13); // Set view to Purok7 Sampaloc, Santo Cristo, Sariaya, Philippines
+
+// Add OpenStreetMap tile layer
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+// Default location: Purok7 Sampaloc, Santo Cristo, Sariaya, Philippines
+var defaultLocation = L.latLng(13.9534, 121.6190);
+
+// Place the marker for the default location
+var marker = L.marker(defaultLocation).addTo(map);
+
+// Set the input field to show the default location's coordinates
+document.getElementById('job_location').value = defaultLocation.lat.toFixed(6) + ', ' + defaultLocation.lng.toFixed(6);
+
+// Create a routing control to draw the route
+var routeControl = L.Routing.control({
+  waypoints: [defaultLocation], // Start with the default location
+  routeWhileDragging: true, // Allow route to update as user drags the route
+}).addTo(map);
+
+// Function for reverse geocoding
+function reverseGeocode(lat, lng) {
+  var geocodeUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`;
+
+  fetch(geocodeUrl)
+    .then(response => response.json())
+    .then(data => {
+      if (data && data.address) {
+        // Show the details in the location_details input field
+        var address = data.address;
+        var fullAddress = `${address.road || ''}, ${address.suburb || ''}, ${address.city || ''}, ${address.state || ''}, ${address.country || ''}`;
+        document.getElementById('job_location').value = fullAddress;
+      } else {
+        document.getElementById('job_location').value = "Location details not found";
+      }
+    })
+    .catch(error => {
+      document.getElementById('job_location').value = "Error retrieving location details";
+    });
+}
+
+// Update the location when the map is clicked
+map.on('click', function(e) {
+  var latlng = e.latlng;
+
+  // Set the new marker at the clicked location
+  if (marker) map.removeLayer(marker);
+  marker = L.marker(latlng).addTo(map);
+
+  // Update the input field with the new location's coordinates
+  document.getElementById('job_location').value = latlng.lat.toFixed(6) + ', ' + latlng.lng.toFixed(6);
+
+  // Update the route to include the new location
+  routeControl.setWaypoints([defaultLocation, latlng]); // Set waypoints for the route
+
+  // Get the location details using reverse geocoding
+  reverseGeocode(latlng.lat, latlng.lng);
+});
+
+// You can also show the default location details at the beginning
+reverseGeocode(defaultLocation.lat, defaultLocation.lng);
+
+
+// Contract Period Logic
+const serviceSelect = document.getElementById('serviceSelect');
+const contractSelect = document.getElementById('contract_period');
+
+const updateContractOptions = () => {
+  const selectedService = serviceSelect.value;
+  contractSelect.innerHTML = '';
+
+  if (selectedService === 'General Pest Control') {
+    contractSelect.innerHTML = '<option value="Uncertain">Uncertain</option>';
+  } else if (selectedService === 'Termite Spot Treatment') {
+    contractSelect.innerHTML = '<option value="No contract">No contract</option>';
+  } else if (selectedService === 'Termite Comprehensive') {
+    contractSelect.innerHTML = `
+      <option value="1 year">1 year</option>
+      <option value="2 years">2 years</option>
+    `;
+  } else {
+    contractSelect.innerHTML = '<option value="">Please select a service first</option>';
+  }
+
+  updateEstimatedPrice(); // ✅ refresh price whenever options change
+};
+
+serviceSelect.addEventListener('change', updateContractOptions);
+updateContractOptions();
+
+// Disable dates before the day after tomorrow
+const dateInput = document.getElementById('appointment_date');
+const today = new Date();
+const dayAfterTomorrow = new Date(today);
+dayAfterTomorrow.setDate(today.getDate() + 2); // today + 2 days
+
+const yyyy = dayAfterTomorrow.getFullYear();
+const mm = String(dayAfterTomorrow.getMonth() + 1).padStart(2, '0');
+const dd = String(dayAfterTomorrow.getDate()).padStart(2, '0');
+
+const minDate = `${yyyy}-${mm}-${dd}`;
+dateInput.min = minDate;
+
+
+//--- review modal ----
+function openReviewModal() {
+  const form = document.getElementById('appointmentForm');
+  const formData = new FormData(form);
+  let reviewHtml = '<ul>';
+
+  for (const [key, value] of formData.entries()) {
+    if (key !== 'csrfmiddlewaretoken') {
+      let displayValue = value;
+
+      // Special handling for price
+      if (key === 'estimated_price' && value) {
+        displayValue = "₱" + value;
+      }
+
+      const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      reviewHtml += `<li><strong>${label}:</strong> ${displayValue}</li>`;
+    }
+  }
+
+  reviewHtml += '</ul>';
+  document.getElementById('reviewContent').innerHTML = reviewHtml;
+  document.getElementById('reviewModal').style.display = 'block';
+}
+
+function closeReviewModal() {
+  document.getElementById('reviewModal').style.display = 'none';
+}
+
+// Optional: close modal if user clicks outside
+window.onclick = function(event) {
+  const modal = document.getElementById('reviewModal');
+  if (event.target == modal) {
+    modal.style.display = "none";
+  }
+}
+
+// --- Price Logic ---
+function updateEstimatedPrice() {
+  const service = document.getElementById('serviceSelect').value;
+  const contract = document.getElementById('contract_period').value;
+  const priceField = document.getElementById('estimated_price');
+  const priceDisplay = document.getElementById('priceDisplay');
+
+  let price = "";
+
+  if (service === "General Pest Control") {
+    price = "3800"; 
+  } else if (service === "Termite Spot Treatment") {
+    price = "2000";
+  } else if (service === "Termite Comprehensive") {
+    if (contract === "1 year") {
+      price = "2500";
+    } else if (contract === "2 years") {
+      price = "4500";
+    }
+  }
+
+  // ✅ always update both fields
+  priceField.value = price;
+  priceDisplay.innerText = price ? "₱" + price : "";
+}
+
+// Attach events
+document.getElementById('serviceSelect').addEventListener('change', updateEstimatedPrice);
+document.getElementById('contract_period').addEventListener('change', updateEstimatedPrice);
+
+
+function autoFillRecentAppointment() {
+    fetch("{% url 'recent_appointment' %}")
+    .then(response => response.json())
+    .then(data => {
+        console.log(data); // <-- Debug
+        if (data.success) {
+            const appt = data.appointment;
+
+            document.querySelector('input[name="client_name"]').value = appt.client_name;
+            document.querySelector('input[name="client_address"]').value = appt.client_address;
+            document.querySelector('select[name="land_use_category"]').value = appt.land_use_category;
+            document.querySelector('input[name="email"]').value = appt.email;
+            document.querySelector('input[name="mobile"]').value = appt.mobile;
+            document.querySelector('input[name="job_location"]').value = appt.job_location;
+            document.querySelector('input[name="municipality"]').value = appt.municipality;
+            document.querySelector('select[name="barangay"]').value = appt.barangay;
+            document.querySelector('input[name="street"]').value = appt.street;
+            document.querySelector('input[name="house_number"]').value = appt.house_number;
+            document.querySelector('input[name="total_area"]').value = appt.total_area;
+            document.querySelector('select[name="service"]').value = appt.service;
+
+            // Trigger contract period update
+            const event = new Event('change');
+            document.getElementById('serviceSelect').dispatchEvent(event);
+            document.getElementById('contract_period').value = appt.contract_period;
+
+            document.getElementById('estimated_price').value = appt.estimated_price;
+            document.getElementById('priceDisplay').innerText = "₱" + appt.estimated_price;
+            document.querySelector('input[name="date"]').value = appt.date;
+            document.querySelector('select[name="time"]').value = appt.time;
+            document.querySelector('select[name="payment_method"]').value = appt.payment_method;
+
+            alert("Recent appointment loaded successfully!");
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error("Error fetching recent appointment:", error);
+        alert("Failed to fetch recent appointment");
+    });
+}
+
+</script>
+
+</body>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f5f5f5;
+  margin: 0;
+  padding: 0;
+} 
+.header {
+  background-color: #010A28;
+  color: white;
+  padding: 20px;
+  text-align: center;
+}
+.header h1 {
+  margin: 0;
+  font-size: 24px;
+}
+.header p {
+  margin: 5px 0 0;
+  font-size: 14px;
+}
+.container {
+  max-width: 900px;
+  margin: 30px auto;
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+  gap: 20px; /* space between bubbles */
+}
+label {
+  font-weight: bold;
+  margin-top: 15px;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.bubble-field {
+  background: #fff;
+  padding: 5px 20px;
+  border-radius: 30px; /* capsule shape */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  margin: 10px;
+  width: 90%;
+}
+
+.bubble-field1 {
+  background: #fff;
+  padding: 8px 20px;
+  border-radius: 30px; /* capsule shape */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  margin: 10px;
+  width: 93%;
+}
+
+.bubble-field label {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.bubble-field input,
+.bubble-field select {
+  border: none;
+  outline: none;
+  padding: 10px 12px;
+  border-radius: 20px;
+  background: #f1f1f1;
+  width: 90%;
+}
+
+.bubble-field:hover {
+  background: #CBDCEB;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+button {
+  margin-top: 30px;
+  padding: 12px 24px;
+  background-color: #010A28;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+}
+button:hover {
+  background-color: #002060;
+}
+#map {
+  height: 300px;
+  margin-top: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.cancel-button {
+  display: inline-block;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  text-decoration: none;
+  margin-right: 10px;
+  transition: background-color 0.3s ease;
+}
+.cancel-button:hover {
+  background-color: #002060;
+}
+
+/* for sucess message */
+.alert {
+  padding: 10px 15px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.alert.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.alert.success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+
+.autofill-btn {
+  padding: 10px 20px;
+  background-color: #DDAA1E;
+  color: #010A28;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: 0.3s ease;
+  margin-bottom: 15px;
+}
+
+.autofill-btn:hover {
+  background-color: #ddba5a;
+  color: #fff;
+  transform: scale(1.04);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+}
+
+</style>
+
+</html>

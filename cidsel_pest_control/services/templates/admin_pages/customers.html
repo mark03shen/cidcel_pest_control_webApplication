@@ -1,0 +1,450 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+
+</head>
+<body>
+  <div class="sidebar" id="sidebar">
+    <button class="close-sidebar" onclick="toggleSidebar()">←</button>
+    <a href="{% url 'analytics' %}">Analytics</a>
+    <a href="{% url 'pest_activity' %}">Pest Activity</a>
+    <a href="{% url 'sales' %}">sales</a>
+    <a href="{% url 'reports' %}">Reports</a>
+  </div>
+
+  <div class="header">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <div class="header-nav">
+      <a href="{% url 'admin_home' %}">Home</a>
+      <a href="{% url 'appointment' %}">Appointment</a>
+      <a href="{% url 'customers' %}">Customers</a>
+      <a href="{% url 'inventory' %}">Inventory</a>
+    </div>
+    <div class="notification-wrapper">
+      <button onclick="toggleNotificationModal()" class="notification-button">
+        🔔
+        {% if notifications|length > 0 %}
+        <span class="notification-badge">
+          {{ notifications|length }}
+        </span>
+        {% endif %}
+      </button>
+    </div>
+
+    <form action="{% url 'logout' %}" method="post" style="margin: 0;">
+      {% csrf_token %}
+      <button class="logout-btn">Logout</button>
+    </form>
+  </div>
+
+  <!-- Admin Notification Modal -->
+  <div id="notificationModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:1000;">
+    <div style="background:#fff; padding:20px; margin:5% auto; width:90%; max-width:700px; border-radius:8px; position:relative;">
+
+      <h2 style="text-align:center;">Notifications</h2>
+
+      <!-- 🔘 Filter Buttons -->
+      <div style="text-align:center; margin-bottom:15px;">
+        <button class="notif-tab active" onclick="showNotifTab('all')">All</button>
+        <button class="notif-tab" onclick="showNotifTab('tech')">Technician</button>
+        <button class="notif-tab" onclick="showNotifTab('cust')">Customer</button>
+      </div>
+
+      <!-- All Notifications -->
+      <div id="notif-all" class="notif-section">
+        <h3>All Notifications</h3>
+        <hr>
+        <ul style="list-style:none; padding:0; max-height:300px; overflow-y:auto;">
+          {% for note in notifications %}
+            <li onclick="showNotificationDetail({{ note.id }})" style="border-bottom: 1px solid #ccc; padding: 10px 0; cursor: pointer;">
+              <strong>{{ note.technician.username }}</strong>: {{ note.message }}<br>
+              {% if note.appointment %}
+                <span><strong>Client Email:</strong> {{ note.appointment.email }}</span><br>
+                <span><strong>Client Mobile:</strong> {{ note.appointment.mobile }}</span><br>
+              {% endif %}
+              <small>{{ note.timestamp|date:"M d, Y H:i" }}</small>
+            </li>
+          {% endfor %}
+          {% for cnote in customer_notifications %}
+            <li style="border-bottom: 1px solid #ccc; padding: 10px 0;">
+              <strong>{{ cnote.client_name }}</strong> booked an appointment<br>
+              <span><strong>Service:</strong> {{ cnote.appointment.service }}</span><br>
+              <span><strong>Date:</strong> {{ cnote.appointment.date }}</span>  
+              <span><strong>Time:</strong> {{ cnote.appointment.time }}</span><br>
+              <span><strong>Email:</strong> {{ cnote.appointment.email }}</span><br>
+              <span><strong>Mobile:</strong> {{ cnote.appointment.mobile }}</span><br>
+              <small>{{ cnote.timestamp|date:"M d, Y H:i" }}</small>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- Technician Notifications Only -->
+      <div id="notif-tech" class="notif-section" style="display:none;">
+        <h3>Technician Notifications</h3>
+        <hr>
+        <ul style="list-style:none; padding:0; max-height:300px; overflow-y:auto;">
+          {% for note in notifications %}
+            <li onclick="showNotificationDetail({{ note.id }})" style="border-bottom: 1px solid #ccc; padding: 10px 0; cursor: pointer;">
+              <strong>{{ note.technician.username }}</strong>: {{ note.message }}<br>
+              <small>{{ note.timestamp|date:"M d, Y H:i" }}</small>
+            </li>
+          {% empty %}
+            <li>No technician notifications found.</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- Customer Notifications Only -->
+      <div id="notif-cust" class="notif-section" style="display:none;">
+        <h3>Customer Notifications</h3>
+        <hr>
+        <ul style="list-style:none; padding:0; max-height:300px; overflow-y:auto;">
+          {% for cnote in customer_notifications %}
+            <li style="border-bottom: 1px solid #ccc; padding: 10px 0;">
+              <strong>{{ cnote.client_name }}</strong> booked an appointment<br>
+              <span><strong>Service:</strong> {{ cnote.appointment.service }}</span><br>
+              <small>{{ cnote.timestamp|date:"M d, Y H:i" }}</small>
+            </li>
+          {% empty %}
+            <li>No customer notifications.</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <button onclick="closeNotificationModal()" style="margin-top: 20px;">Close</button>
+    </div>
+  </div>
+
+
+  <!-- Single Notification Detail Modal -->
+  <div id="notificationDetailModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:1000;">
+    <div style="background:#fff; padding:20px; margin:10% auto; width:90%; max-width:600px; border-radius:8px; position:relative;">
+      <h3>Notification Details</h3>
+      <div id="notificationDetailContent"></div>
+      <button onclick="closeNotificationDetail()" style="margin-top: 20px;">Close</button>
+    </div>
+  </div>
+
+  <div class="main" id="mainContent">
+
+    <div class="bubble-container">
+      <h1>Service History</h1>
+      <p>Recent customer transactions</p>
+      <div class="customer-bubble">
+        {% for cust in recent_customers %}
+          <p>
+          </br>
+            <strong>{{ cust.client_name }}</strong> ⮞ 
+            {{ cust.service }}
+            ({{ cust.date|date:"M d, Y" }} at {{ cust.time|time:"H:i" }})
+          </p>
+        {% empty %}
+          <p>No completed appointments yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="bubble-actions">
+      <button onclick="location.href='{% url 'customers_review' %}'">View all customers</button>
+    </div>
+    
+  </div>
+
+<script>
+  function toggleSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    const main = document.getElementById("mainContent");
+    sidebar.classList.toggle("hidden");
+    main.classList.toggle("full");
+  }
+
+
+
+  // for rendering the customer list
+  document.addEventListener("DOMContentLoaded", function() {
+    const recentList = JSON.parse(localStorage.getItem("recentCustomers") || "[]");
+    const listContainer = document.getElementById("recentCustomerList");
+
+    const last10 = recentList.slice(0, 10);
+
+    last10.forEach(cust => {
+      const li = document.createElement("li");
+      li.textContent = `${cust.client_name} - ${cust.service} (${cust.date || 'N/A'} at ${cust.time || 'N/A'})`;
+      listContainer.appendChild(li);
+    });
+  });
+
+
+  //--- for admin notification modal
+  function toggleNotificationModal() {
+    const modal = document.getElementById('notificationModal');
+    modal.style.display = 'block';
+  }
+
+  function closeNotificationModal() {
+    document.getElementById('notificationModal').style.display = 'none';
+  }
+
+  // Optional: Close modal when clicking outside of it
+  window.addEventListener('click', function(e) {
+    const modal = document.getElementById('notificationModal');
+    if (e.target === modal) {
+      modal.style.display = 'none';
+    }
+  });
+
+//--- for  single notification modal
+function showNotificationDetail(notifId) {
+  fetch(`/get-notification-detail/?id=${notifId}`)
+    .then(response => response.json())
+    .then(data => {
+      const content = `
+        <p><strong>Technician:</strong> ${data.technician}</p>
+        <p><strong>Message:</strong> ${data.message}</p>
+        
+        <hr>
+        ${data.client_name ? `
+          <p><strong>Client:</strong> ${data.client_name}</p>
+          <p><strong>Service:</strong> ${data.service}</p>
+          <p><strong>Date:</strong> ${data.date}</p>
+          <p><strong>Time:</strong> ${data.time}</p>
+          <p><strong>Email:</strong> ${data.email}</p>
+          <p><strong>Mobile:</strong> ${data.mobile}</p>
+        ` : '<p>No appointment linked.</p>'}
+      `;
+      document.getElementById('notificationDetailContent').innerHTML = content;
+      document.getElementById('notificationDetailModal').style.display = 'block';
+    });
+}
+
+function closeNotificationDetail() {
+  document.getElementById('notificationDetailModal').style.display = 'none';
+}
+
+
+function showNotifTab(tab) {
+  // Hide all sections
+  document.querySelectorAll('.notif-section').forEach(s => s.style.display = 'none');
+
+  // Remove active state from all buttons
+  document.querySelectorAll('.notif-tab').forEach(btn => btn.classList.remove('active'));
+
+  // Show selected section
+  if (tab === 'all') {
+    document.getElementById('notif-all').style.display = 'block';
+    document.querySelector(".notif-tab:nth-child(1)").classList.add('active');
+  } 
+  else if (tab === 'tech') {
+    document.getElementById('notif-tech').style.display = 'block';
+    document.querySelector(".notif-tab:nth-child(2)").classList.add('active');
+  } 
+  else if (tab === 'cust') {
+    document.getElementById('notif-cust').style.display = 'block';
+    document.querySelector(".notif-tab:nth-child(3)").classList.add('active');
+  }
+}
+
+</script>
+
+</body>
+
+<style>
+body { 
+  margin: 0; 
+  font-family: Arial, 
+  sans-serif; 
+}
+/* Sticky Header */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  background: #010A28;
+  color: white;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.menu-btn, .logout-btn {
+  background: none; 
+  border: none; 
+  color: white; 
+  font-size: 16px; 
+  cursor: pointer;
+}
+.sidebar {
+  width: 250px; 
+  background: #010A28; 
+  height: 100vh; 
+  position: fixed;
+  top: 0; 
+  left: 0;
+  padding-top: 60px; 
+  transform: translateX(0); 
+  transition: transform 0.3s ease;
+}
+.sidebar.hidden { 
+  transform: translateX(-100%); 
+}
+.sidebar a {
+  display: block; 
+  padding: 15px 20px; 
+  color: white; 
+  text-decoration: none;
+}
+.sidebar a:hover { 
+  background: #2c3e50;
+}
+@media (max-width: 768px) {
+  .main {
+    margin-left: 0;
+  }
+  .sidebar {
+    position: fixed;
+    height: 100%;
+    z-index: 998;
+  }
+}
+
+.close-sidebar {
+  position: absolute; 
+  top: 10px; 
+  right: 10px; 
+  background: none; 
+  border: none; 
+  color: white;
+  font-size: 20px; 
+  cursor: pointer;
+}
+.main {
+  margin-left: 250px; 
+  padding: 20px;
+  transition: margin-left 0.3s ease;
+}
+.main.full { 
+  margin-left: 0; 
+}
+.header-nav a {
+  margin-left: 20px; 
+  color: white; 
+  text-decoration: none;
+}
+
+
+.bubble-container {
+  display: flex;
+  flex-direction: column;
+  margin-top: 15px;
+}
+
+.customer-bubble {
+  background: #f5f7fa;
+  border: 1px solid #ddd;
+  padding: 15px;
+  border-radius: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  transition: transform 0.2s;
+}
+
+.customer-bubble:hover {
+  transform: translateY(-3px);
+  background: #eef3fc;
+}
+
+/* Bubble title */
+.customer-bubble h1 {
+  margin: 0 0 8px;
+  color: #010A28;
+  font-size: 18px;
+}
+
+/* Bubble text */
+.customer-bubble p {
+  margin: 4px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.bubble-actions {
+  margin-top: 20px;
+}
+
+.bubble-actions button {
+  padding: 10px 20px;
+  margin-right: 8px;
+  font-size: 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.bubble-actions button:first-child {
+  background: #DDAA1E;
+  color: black;
+}
+
+.archive-btn {
+  background: red;
+  color: white;
+}
+
+
+.container-box img {
+  max-width: 100%;
+  height: auto;
+  margin-top: 10px;
+  border-radius: 4px;
+}
+
+/*this is for notification css*/
+.notification-wrapper {
+  position: relative;
+}
+
+.notification-button {
+  position: relative;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 18px; /* optional, adjust icon size */
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: red;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+
+/* Notification Tabs */
+.notif-tab {
+  padding: 10px 15px;
+  margin: 5px;
+  border: none;
+  background: #eee;
+  cursor: pointer;
+  border-radius: 8px;
+  font-weight: bold;
+  color: #DDAA1E;
+}
+
+.notif-tab.active {
+  background: #010A28;
+  color: white;
+}
+
+</style>
+
+</html>

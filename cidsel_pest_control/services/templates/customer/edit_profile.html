@@ -1,0 +1,91 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Profile</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .edit-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        h2 {
+            font-size: 24px;
+            color: #010A28;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+        button {
+            margin-top: 15px;
+            width: 100%;
+            padding: 12px;
+            background-color: #010A28;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0036a5;
+        }
+    </style>
+</head>
+<body>
+<div class="edit-container">
+    <h2>Edit Profile</h2>
+
+    <!-- Update Profile -->
+    <form method="post">
+        {% csrf_token %}
+        {{ u_form.as_p }}
+        <button type="submit" name="update_profile">Update Profile</button>
+    </form>
+
+    <!-- Change Password -->
+    <h2>Change Password</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ p_form.as_p }}
+        <button type="submit" name="change_password">Change Password</button>
+    </form>
+
+    <!-- Change Profile Picture -->
+    <h2>Change Profile Picture</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ pic_form.as_p }}
+        <button type="submit" name="update_picture">Upload Picture</button>
+    </form>
+
+
+    <a href="{% url 'profile' %}" class="btn">Back to Profile</a>
+</div>
+</body>
+</html>

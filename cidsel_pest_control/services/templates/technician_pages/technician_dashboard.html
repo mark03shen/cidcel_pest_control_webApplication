@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Dashboard{% endblock %}</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+
+        h3 {
+            color: white;
+            margin: 0;
+        }
+
+        /* Header */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            background: #010A28;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .header-nav button,
+        .menu-btn,
+        .logout-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 16px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+
+        .header-nav button:hover,
+        .logout-btn:hover,
+        .menu-btn:hover {
+            text-decoration: underline;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 230px;
+            background: #010A28;
+            color: white;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding-top: 80px;
+            transform: translateX(0);
+            transition: transform 0.3s ease;
+            z-index: 998;
+        }
+
+        .sidebar.hidden {
+            transform: translateX(-100%);
+        }
+
+        .sidebar button {
+            display: block;
+            width: 100%;
+            padding: 15px 20px;
+            border: none;
+            background: none;
+            color: white;
+            text-align: left;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .sidebar button:hover {
+            background: #1c2541;
+        }
+
+        .close-sidebar {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        /* Main Content */
+        main {
+            margin-left: 250px;
+            padding: 20px;
+            transition: margin-left 0.3s ease;
+        }
+
+        main.full {
+            margin-left: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            main {
+                margin-left: 0;
+            }
+
+            .sidebar {
+                position: fixed;
+                height: 100%;
+                z-index: 998;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar" id="sidebar">
+    <button class="close-sidebar" onclick="toggleSidebar()">←</button>
+    <button onclick="location.href='{% url 'home_page' %}'">About</button>
+    <button onclick="location.href='{% url 'verification_route' %}'">Job Assignments</button>
+    <button onclick="location.href='{% url 'photo_documentation' %}'">Photo Documentation</button>
+</div>
+
+<div class="header">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <h3>Technician Dashboard</h3>
+    <div class="header-nav">
+        <button onclick="location.href='{% url 'notifications' %}'">🔔</button>
+    </div>
+    <form action="{% url 'logout' %}" method="post" style="margin: 0;">
+        {% csrf_token %}
+        <button class="logout-btn">Logout</button>
+    </form>
+</div>
+
+<main id="mainContent">
+    {% block content %}
+
+
+    {% endblock %}
+</main>
+
+<script>
+function toggleSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    const main = document.getElementById("mainContent");
+    sidebar.classList.toggle("hidden");
+    main.classList.toggle("full");
+}
+
+setInterval(() => {
+    fetch("/update-tech-status/")
+}, 3000); // every 15 seconds
+</script>
+
+</body>
+</html>
